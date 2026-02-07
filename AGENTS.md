@@ -42,6 +42,14 @@
   - Screenshots or a short screen capture if UI behavior changes.
   - Notes about any audio changes (what was tuned and why).
 
+## Git Authentication & Push Tips
+
+- To avoid repeated auth prompts, ensure GitHub CLI is authenticated and that Git uses the GitHub credential helper.
+- One-time setup (examples):
+  - `& "C:\Program Files\GitHub CLI\gh.exe" auth login`
+  - `& "C:\Program Files\Git\cmd\git.exe" config --global credential.helper manager`
+- After this, `git push` should work without re-auth.
+
 ## Configuration & Security Notes
 
 - Audio uses the browser Web Audio API; user interaction is required before audio can start.
