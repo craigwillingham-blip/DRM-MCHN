@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DRM MCHN</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #151c23;
+      --panel-2: #1b242d;
+      --text: #e7edf3;
+      --muted: #8fa1b3;
+      --accent: #f5c542;
+      --accent-2: #2bd4a4;
+      --danger: #ff6b6b;
+      --shadow: 0 12px 30px rgba(0,0,0,0.35);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      background: radial-gradient(1200px 800px at 10% 0%, #1b2633 0%, var(--bg) 50%, #0a0f14 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .app {
+      width: min(1100px, 100%);
+      background: linear-gradient(135deg, var(--panel) 0%, #0e1319 100%);
+      border: 1px solid #222c36;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    h1 {
+      font-size: 22px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin: 0;
+    }
+    .transport {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    button {
+      background: var(--panel-2);
+      color: var(--text);
+      border: 1px solid #273240;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.primary {
+      background: linear-gradient(140deg, #2d3f50, #1f2a34);
+      border-color: #334354;
+    }
+    button.active {
+      box-shadow: 0 0 0 2px var(--accent) inset;
+      color: var(--accent);
+    }
+    button.danger {
+      color: var(--danger);
+      border-color: #4e2a2a;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 160px 1fr 90px;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .label {
+      font-size: 14px;
+      letter-spacing: 1px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(16, minmax(30px, 1fr));
+      gap: 6px;
+    }
+    .step {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 6px;
+      background: #0f151c;
+      border: 1px solid #24303a;
+      cursor: pointer;
+      transition: transform 0.05s ease;
+    }
+    .step.on {
+      background: var(--accent);
+      border-color: #cc9d1d;
+    }
+    .step.current {
+      box-shadow: 0 0 0 2px var(--accent-2) inset;
+    }
+    .step:active { transform: scale(0.96); }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .card {
+      background: var(--panel-2);
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid #273240;
+    }
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+    }
+    input[type="range"] {
+      width: 100%;
+    }
+    .small {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .kbd {
+      border: 1px solid #344252;
+      border-radius: 6px;
+      padding: 2px 6px;
+      font-size: 11px;
+      color: var(--muted);
+      margin-left: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>DRM MCHN</h1>
+      <div class="transport">
+        <button id="play" class="primary">Play</button>
+        <button id="stop">Stop</button>
+        <button id="clear" class="danger">Clear</button>
+        <button id="random">Random</button>
+        <span class="small">Space = Play/Pause</span>
+      </div>
+    </header>
+
+    <section id="sequencer"></section>
+
+    <section class="controls">
+      <div class="card">
+        <h3>Tempo</h3>
+        <input id="tempo" type="range" min="60" max="180" value="120" />
+        <div class="small"><span id="tempoValue">120</span> BPM</div>
+      </div>
+      <div class="card">
+        <h3>Swing</h3>
+        <input id="swing" type="range" min="0" max="60" value="0" />
+        <div class="small"><span id="swingValue">0</span> ms</div>
+      </div>
+      <div class="card">
+        <h3>Master</h3>
+        <input id="master" type="range" min="0" max="100" value="70" />
+        <div class="small"><span id="masterValue">70</span>%</div>
+      </div>
+      <div class="card">
+        <h3>Kit</h3>
+        <select id="kit">
+          <option value="classic" selected>Classic</option>
+          <option value="glass">Glass</option>
+          <option value="soft">Soft</option>
+        </select>
+        <div class="small">Pure Web Audio synthesis.</div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const tracks = [
+      { name: "Kick", tone: "kick", color: "#f5c542" },
+      { name: "Snare", tone: "snare", color: "#ff6b6b" },
+      { name: "Hat", tone: "hat", color: "#2bd4a4" },
+      { name: "Clap", tone: "clap", color: "#8f7cff" },
+      { name: "Tom", tone: "tom", color: "#49b3f5" },
+      { name: "Perc", tone: "perc", color: "#f59f49" },
+      { name: "Ride", tone: "ride", color: "#9bd53a" },
+      { name: "Fx", tone: "fx", color: "#d975f5" }
+    ];
+
+    const steps = 16;
+    const sequence = tracks.map(() => Array.from({ length: steps }, () => false));
+
+    const sequencer = document.getElementById("sequencer");
+
+    function buildGrid() {
+      sequencer.innerHTML = "";
+      tracks.forEach((track, tIndex) => {
+        const row = document.createElement("div");
+        row.className = "row";
+
+        const label = document.createElement("div");
+        label.className = "label";
+        label.textContent = track.name;
+        row.appendChild(label);
+
+        const grid = document.createElement("div");
+        grid.className = "grid";
+
+        for (let s = 0; s < steps; s++) {
+          const step = document.createElement("button");
+          step.className = "step";
+          step.dataset.track = tIndex;
+          step.dataset.step = s;
+          step.addEventListener("click", () => toggleStep(tIndex, s, step));
+          grid.appendChild(step);
+        }
+
+        row.appendChild(grid);
+
+        const colorTag = document.createElement("div");
+        colorTag.className = "label";
+        colorTag.style.color = track.color;
+        colorTag.textContent = track.tone.toUpperCase();
+        row.appendChild(colorTag);
+
+        sequencer.appendChild(row);
+      });
+    }
+
+    function toggleStep(trackIndex, stepIndex, element) {
+      const value = !sequence[trackIndex][stepIndex];
+      sequence[trackIndex][stepIndex] = value;
+      element.classList.toggle("on", value);
+    }
+
+    buildGrid();
+
+    let audioContext;
+    let masterGain;
+    let isPlaying = false;
+    let currentStep = 0;
+    let schedulerId;
+    let nextNoteTime = 0;
+
+    const tempo = document.getElementById("tempo");
+    const tempoValue = document.getElementById("tempoValue");
+    const swing = document.getElementById("swing");
+    const swingValue = document.getElementById("swingValue");
+    const master = document.getElementById("master");
+    const masterValue = document.getElementById("masterValue");
+
+    function initAudio() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        masterGain = audioContext.createGain();
+        masterGain.gain.value = master.value / 100;
+        masterGain.connect(audioContext.destination);
+      }
+    }
+
+    function schedule() {
+      while (nextNoteTime < audioContext.currentTime + 0.1) {
+        playStep(currentStep, nextNoteTime);
+        advanceStep();
+      }
+      schedulerId = requestAnimationFrame(schedule);
+    }
+
+    function advanceStep() {
+      const secondsPerBeat = 60.0 / tempo.value;
+      const stepDuration = secondsPerBeat / 4;
+      const swingOffset = (currentStep % 2 === 1 ? swing.value : 0) / 1000;
+      nextNoteTime += stepDuration + swingOffset;
+      currentStep = (currentStep + 1) % steps;
+    }
+
+    function playStep(stepIndex, time) {
+      const stepButtons = document.querySelectorAll(`.step[data-step="${stepIndex}"]`);
+      stepButtons.forEach((btn) => btn.classList.add("current"));
+      setTimeout(() => stepButtons.forEach((btn) => btn.classList.remove("current")), 80);
+
+      tracks.forEach((track, tIndex) => {
+        if (sequence[tIndex][stepIndex]) {
+          triggerSound(track.tone, time);
+        }
+      });
+    }
+
+    function triggerSound(type, time) {
+      const kit = document.getElementById("kit").value;
+      if (kit === "classic") {
+        classicKit(type, time);
+      } else if (kit === "glass") {
+        glassKit(type, time);
+      } else {
+        softKit(type, time);
+      }
+    }
+
+    function classicKit(type, time) {
+      switch (type) {
+        case "kick":
+          synthKick(time, 70, 40);
+          break;
+        case "snare":
+          synthSnare(time, 1800, 0.6);
+          break;
+        case "hat":
+          synthHat(time, 6000, 0.2, "highpass");
+          break;
+        case "clap":
+          synthClap(time, 0.4);
+          break;
+        case "tom":
+          synthTom(time, 220, 0.35);
+          break;
+        case "perc":
+          synthPerc(time, 450, 0.25);
+          break;
+        case "ride":
+          synthHat(time, 4000, 0.6, "bandpass");
+          break;
+        case "fx":
+          synthFx(time);
+          break;
+      }
+    }
+
+    function glassKit(type, time) {
+      switch (type) {
+        case "kick":
+          synthKick(time, 90, 30, 1.2);
+          break;
+        case "snare":
+          synthSnare(time, 2400, 0.5);
+          break;
+        case "hat":
+          synthHat(time, 8000, 0.15, "highpass");
+          break;
+        case "clap":
+          synthClap(time, 0.25, 1600);
+          break;
+        case "tom":
+          synthTom(time, 320, 0.25);
+          break;
+        case "perc":
+          synthPerc(time, 700, 0.2);
+          break;
+        case "ride":
+          synthHat(time, 5200, 0.45, "bandpass");
+          break;
+        case "fx":
+          synthFx(time, 1.4);
+          break;
+      }
+    }
+
+    function softKit(type, time) {
+      switch (type) {
+        case "kick":
+          synthKick(time, 60, 55, 0.7);
+          break;
+        case "snare":
+          synthSnare(time, 1400, 0.45);
+          break;
+        case "hat":
+          synthHat(time, 5000, 0.18, "highpass");
+          break;
+        case "clap":
+          synthClap(time, 0.5, 1000);
+          break;
+        case "tom":
+          synthTom(time, 180, 0.4);
+          break;
+        case "perc":
+          synthPerc(time, 380, 0.28);
+          break;
+        case "ride":
+          synthHat(time, 3600, 0.5, "bandpass");
+          break;
+        case "fx":
+          synthFx(time, 0.8);
+          break;
+      }
+    }
+
+    function synthKick(time, startFreq, endFreq, length = 0.9) {
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(startFreq, time);
+      osc.frequency.exponentialRampToValueAtTime(endFreq, time + 0.12);
+      gain.gain.setValueAtTime(0.9, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + length);
+      osc.connect(gain).connect(masterGain);
+      osc.start(time);
+      osc.stop(time + length);
+    }
+
+    function synthSnare(time, noiseCutoff, decay) {
+      const noise = audioContext.createBufferSource();
+      noise.buffer = createNoiseBuffer();
+      const noiseFilter = audioContext.createBiquadFilter();
+      noiseFilter.type = "highpass";
+      noiseFilter.frequency.value = noiseCutoff;
+
+      const noiseGain = audioContext.createGain();
+      noiseGain.gain.setValueAtTime(0.6, time);
+      noiseGain.gain.exponentialRampToValueAtTime(0.01, time + decay);
+
+      const osc = audioContext.createOscillator();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(220, time);
+      const oscGain = audioContext.createGain();
+      oscGain.gain.setValueAtTime(0.4, time);
+      oscGain.gain.exponentialRampToValueAtTime(0.01, time + decay * 0.8);
+
+      noise.connect(noiseFilter).connect(noiseGain).connect(masterGain);
+      osc.connect(oscGain).connect(masterGain);
+      noise.start(time);
+      noise.stop(time + decay);
+      osc.start(time);
+      osc.stop(time + decay);
+    }
+
+    function synthHat(time, cutoff, decay, filterType) {
+      const noise = audioContext.createBufferSource();
+      noise.buffer = createNoiseBuffer();
+      const filter = audioContext.createBiquadFilter();
+      filter.type = filterType;
+      filter.frequency.value = cutoff;
+
+      const gain = audioContext.createGain();
+      gain.gain.setValueAtTime(0.3, time);
+      gain.gain.exponentialRampToValueAtTime(0.01, time + decay);
+      noise.connect(filter).connect(gain).connect(masterGain);
+      noise.start(time);
+      noise.stop(time + decay);
+    }
+
+    function synthClap(time, decay, cutoff = 1200) {
+      const noise = audioContext.createBufferSource();
+      noise.buffer = createNoiseBuffer();
+      const filter = audioContext.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = cutoff;
+      const gain = audioContext.createGain();
+      gain.gain.setValueAtTime(0.5, time);
+      gain.gain.exponentialRampToValueAtTime(0.01, time + decay);
+      noise.connect(filter).connect(gain).connect(masterGain);
+      noise.start(time);
+      noise.stop(time + decay);
+    }
+
+    function synthTom(time, frequency, decay) {
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(frequency, time);
+      gain.gain.setValueAtTime(0.6, time);
+      gain.gain.exponentialRampToValueAtTime(0.01, time + decay);
+      osc.connect(gain).connect(masterGain);
+      osc.start(time);
+      osc.stop(time + decay);
+    }
+
+    function synthPerc(time, frequency, decay) {
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(frequency, time);
+      gain.gain.setValueAtTime(0.4, time);
+      gain.gain.exponentialRampToValueAtTime(0.01, time + decay);
+      osc.connect(gain).connect(masterGain);
+      osc.start(time);
+      osc.stop(time + decay);
+    }
+
+    function synthRide(time, decay) {
+      synthHat(time, 4200, decay, "bandpass");
+    }
+
+    function synthFx(time, length = 1) {
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(160, time);
+      osc.frequency.exponentialRampToValueAtTime(60, time + length);
+      gain.gain.setValueAtTime(0.5, time);
+      gain.gain.exponentialRampToValueAtTime(0.01, time + length);
+      osc.connect(gain).connect(masterGain);
+      osc.start(time);
+      osc.stop(time + length);
+    }
+
+    function createNoiseBuffer() {
+      const bufferSize = audioContext.sampleRate * 0.4;
+      const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      return buffer;
+    }
+
+    function start() {
+      initAudio();
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+      isPlaying = true;
+      currentStep = 0;
+      nextNoteTime = audioContext.currentTime + 0.05;
+      schedule();
+      playButton.textContent = "Pause";
+      playButton.classList.add("active");
+    }
+
+    function stop() {
+      isPlaying = false;
+      playButton.textContent = "Play";
+      playButton.classList.remove("active");
+      if (schedulerId) {
+        cancelAnimationFrame(schedulerId);
+      }
+    }
+
+    const playButton = document.getElementById("play");
+    playButton.addEventListener("click", () => {
+      if (!isPlaying) start();
+      else stop();
+    });
+
+    document.getElementById("stop").addEventListener("click", () => {
+      stop();
+      currentStep = 0;
+    });
+
+    document.getElementById("clear").addEventListener("click", () => {
+      sequence.forEach((row) => row.fill(false));
+      document.querySelectorAll(".step").forEach((step) => step.classList.remove("on"));
+    });
+
+    document.getElementById("random").addEventListener("click", () => {
+      sequence.forEach((row, rowIndex) => {
+        row.forEach((_, stepIndex) => {
+          const active = Math.random() > 0.75;
+          row[stepIndex] = active;
+          const el = document.querySelector(`.step[data-track="${rowIndex}"][data-step="${stepIndex}"]`);
+          el.classList.toggle("on", active);
+        });
+      });
+    });
+
+    tempo.addEventListener("input", () => {
+      tempoValue.textContent = tempo.value;
+    });
+
+    swing.addEventListener("input", () => {
+      swingValue.textContent = swing.value;
+    });
+
+    master.addEventListener("input", () => {
+      masterValue.textContent = master.value;
+      if (masterGain) masterGain.gain.value = master.value / 100;
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.code === "Space") {
+        event.preventDefault();
+        if (!isPlaying) start();
+        else stop();
+      }
+    });
+  </script>
+</body>
+</html>
