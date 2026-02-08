@@ -1,14 +1,15 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>DRM MCHN</title>
+  <title>DRM MCHN - Beatdown</title>
   <style>
     :root {
-      --bg: #0f1419;
-      --panel: #151c23;
-      --panel-2: #1b242d;
+      --bg: #0d1116;
+      --panel: #131a22;
+      --panel-2: #1a232d;
+      --panel-3: #0f151c;
       --text: #e7edf3;
       --muted: #8fa1b3;
       --accent: #f5c542;
@@ -29,7 +30,7 @@
       padding: 24px;
     }
     .app {
-      width: min(1100px, 100%);
+      width: min(1200px, 100%);
       background: linear-gradient(135deg, var(--panel) 0%, #0e1319 100%);
       border: 1px solid #222c36;
       border-radius: 16px;
@@ -78,8 +79,8 @@
     }
     .row {
       display: grid;
-      grid-template-columns: 160px 1fr 90px;
-      gap: 12px;
+      grid-template-columns: 120px 1fr 110px 90px;
+      gap: 10px;
       align-items: center;
       margin-bottom: 10px;
     }
@@ -91,8 +92,9 @@
     }
     .grid {
       display: grid;
-      grid-template-columns: repeat(16, minmax(30px, 1fr));
+      grid-template-columns: repeat(16, minmax(26px, 1fr));
       gap: 6px;
+      position: relative;
     }
     .step {
       width: 100%;
@@ -101,7 +103,8 @@
       background: #0f151c;
       border: 1px solid #24303a;
       cursor: pointer;
-      transition: transform 0.05s ease;
+      transition: transform 0.05s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      position: relative;
     }
     .step.on {
       background: var(--accent);
@@ -111,11 +114,118 @@
       box-shadow: 0 0 0 2px var(--accent-2) inset;
     }
     .step:active { transform: scale(0.96); }
+    .step::after {
+      content: attr(data-vel);
+      position: absolute;
+      bottom: 2px;
+      right: 4px;
+      font-size: 9px;
+      color: rgba(0,0,0,0.5);
+    }
     .controls {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
       gap: 12px;
       margin-top: 18px;
+    }
+    .xy-pad {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: linear-gradient(135deg, #0b1117 0%, #1b2633 100%);
+      border: 1px solid #273240;
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: crosshair;
+    }
+    .xy-crosshair {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .xy-crosshair::before,
+    .xy-crosshair::after {
+      content: "";
+      position: absolute;
+      background: rgba(245, 197, 66, 0.4);
+    }
+    .xy-crosshair::before {
+      width: 1px;
+      height: 100%;
+      left: var(--x, 50%);
+      top: 0;
+    }
+    .xy-crosshair::after {
+      height: 1px;
+      width: 100%;
+      top: var(--y, 50%);
+      left: 0;
+    }
+    .xy-handle {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 3px rgba(245, 197, 66, 0.3);
+      transform: translate(-50%, -50%);
+      left: var(--x, 50%);
+      top: var(--y, 50%);
+      pointer-events: none;
+    }
+    .faders {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+      gap: 10px;
+      align-items: end;
+    }
+    .fader {
+      display: grid;
+      gap: 6px;
+      justify-items: center;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .fader input[type="range"] {
+      writing-mode: bt-lr;
+      appearance: slider-vertical;
+      width: 18px;
+      height: 140px;
+    }
+    .knob-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 12px;
+    }
+    .knob {
+      display: grid;
+      gap: 6px;
+      justify-items: center;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .knob-visual {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: conic-gradient(var(--accent) var(--angle, 0deg), #1f2a34 0deg);
+      position: relative;
+      border: 1px solid #2a3642;
+    }
+    .knob-visual::after {
+      content: "";
+      position: absolute;
+      width: 4px;
+      height: 16px;
+      background: #0f151c;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%) rotate(var(--angle, 0deg));
+      transform-origin: 50% 20px;
+      border-radius: 2px;
+    }
+    .knob input[type="range"] {
+      width: 100%;
     }
     .card {
       background: var(--panel-2);
@@ -130,32 +240,73 @@
       letter-spacing: 1px;
       color: var(--muted);
     }
-    input[type="range"] {
+    input[type="range"], select {
       width: 100%;
     }
     .small {
       font-size: 12px;
       color: var(--muted);
     }
-    .kbd {
-      border: 1px solid #344252;
-      border-radius: 6px;
-      padding: 2px 6px;
-      font-size: 11px;
+    .track-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .track-card {
+      background: var(--panel-3);
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid #22303c;
+    }
+    .track-card h4 {
+      margin: 0 0 8px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
       color: var(--muted);
-      margin-left: 6px;
+    }
+    .inline {
+      display: grid;
+      grid-template-columns: 1fr 60px;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .mute {
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+    .hint {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .preset-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .preset-row button {
+      width: 100%;
     }
   </style>
 </head>
 <body>
   <div class="app">
     <header>
-      <h1>DRM MCHN</h1>
+      <h1>DRM MCHN — Beatdown</h1>
       <div class="transport">
         <button id="play" class="primary">Play</button>
         <button id="stop">Stop</button>
         <button id="clear" class="danger">Clear</button>
-        <button id="random">Random</button>
+        <button id="reroll">Re-roll Feel</button>
+        <button id="resampleMaster">Resample Master</button>
+        <button id="record">Record</button>
+        <button id="exportWav">Stop & Export WAV</button>
+        <span class="small" id="recordStatus">Idle</span>
         <span class="small">Space = Play/Pause</span>
       </div>
     </header>
@@ -164,31 +315,125 @@
 
     <section class="controls">
       <div class="card">
+        <h3>XY Groove</h3>
+        <div id="xyPad" class="xy-pad">
+          <div class="xy-crosshair" id="xyCrosshair"></div>
+          <div class="xy-handle" id="xyHandle"></div>
+        </div>
+        <div class="small">X = swing, Y = looseness</div>
+      </div>
+      <div class="card">
         <h3>Tempo</h3>
-        <input id="tempo" type="range" min="60" max="180" value="120" />
-        <div class="small"><span id="tempoValue">120</span> BPM</div>
+        <input id="tempo" type="range" min="88" max="140" value="116" />
+        <input id="tempoNumber" type="number" min="88" max="140" value="116" />
+        <div class="small"><span id="tempoValue">116</span> BPM</div>
       </div>
       <div class="card">
         <h3>Swing</h3>
-        <input id="swing" type="range" min="0" max="60" value="0" />
-        <div class="small"><span id="swingValue">0</span> ms</div>
+        <input id="swing" type="range" min="0" max="70" value="24" />
+        <div class="small"><span id="swingValue">24</span> ms</div>
       </div>
       <div class="card">
-        <h3>Master</h3>
-        <input id="master" type="range" min="0" max="100" value="70" />
-        <div class="small"><span id="masterValue">70</span>%</div>
+        <h3>Master Tape</h3>
+        <input id="tape" type="range" min="0" max="100" value="35" />
+        <div class="small"><span id="tapeValue">35</span>%</div>
       </div>
       <div class="card">
-        <h3>Kit</h3>
-        <select id="kit">
-          <option value="classic" selected>Classic</option>
-          <option value="glass">Glass</option>
-          <option value="soft">Soft</option>
-          <option value="808-industrial">808 + Industrial</option>
+        <h3>Noise Layer</h3>
+        <input id="layer" type="range" min="0" max="100" value="35" />
+        <div class="small"><span id="layerValue">35</span>% chance</div>
+      </div>
+      <div class="card">
+        <h3>Humanize</h3>
+        <select id="groovePreset">
+          <option value="tight">Tight</option>
+          <option value="loose" selected>Loose</option>
+          <option value="live">Live MPC</option>
+          <option value="theo">Theo Mode</option>
         </select>
-        <div class="small">Pure Web Audio synthesis.</div>
+        <div class="inline"><label>Looseness</label><span class="small" id="loosenessValue">24</span></div>
+        <input id="looseness" type="range" min="0" max="40" value="24" />
+        <div class="inline"><label>Vel Var</label><span class="small" id="velVarValue">18%</span></div>
+        <input id="velVar" type="range" min="0" max="40" value="18" />
+        <div class="inline"><label>Swing Drift</label><span class="small" id="swingVarValue">12</span></div>
+        <input id="swingVar" type="range" min="0" max="30" value="12" />
+        <div class="inline"><label>Pulse Drift</label><span class="small" id="pulseValue">0.6</span></div>
+        <input id="pulse" type="range" min="0" max="2" step="0.1" value="0.6" />
+        <div class="inline"><label>Detune</label><span class="small" id="detuneValue">1.2</span></div>
+        <input id="detune" type="range" min="0" max="2" step="0.1" value="1.2" />
+        <div class="inline"><label>Mod</label><span class="small" id="modValue">18%</span></div>
+        <input id="mod" type="range" min="0" max="40" value="18" />
+      </div>
+      <div class="card">
+        <h3>Max Chaos</h3>
+        <input id="chaos" type="range" min="0" max="200" value="110" />
+        <div class="small"><span id="chaosValue">110</span>%</div>
+      </div>
+      <div class="card">
+        <h3>Quick Sketch</h3>
+        <div class="preset-row">
+          <button id="sketchA">Sketch A</button>
+          <button id="sketchB">Sketch B</button>
+          <button id="sketchC">Sketch C</button>
+        </div>
+        <div class="small">A: Pocket • B: Lurch • C: Shuffle (Hotkeys 1/2/3)</div>
+      </div>
+      <div class="card">
+        <h3>Genre Sketch</h3>
+        <div class="preset-row">
+          <button id="sketchHouse">House</button>
+          <button id="sketchTechno">Techno</button>
+          <button id="sketchHipHop">Hip Hop</button>
+        </div>
+        <div class="small">Experimental genre starters (Hotkeys 4/5/6)</div>
+      </div>
+      <div class="card">
+        <h3>Track Faders</h3>
+        <div class="faders" id="faders"></div>
+      </div>
+      <div class="card">
+        <h3>Track Knobs</h3>
+        <div class="knob-grid" id="knobs"></div>
+      </div>
+      <div class="card">
+        <h3>Step Editor</h3>
+        <div class="small" id="stepLabel">No step selected (Alt+Click a step)</div>
+        <div class="inline"><label>Chance</label><span class="small" id="chanceValue">100%</span></div>
+        <input id="stepChance" type="range" min="0" max="100" value="100" />
+        <div class="inline"><label>Every N</label><span class="small" id="everyValue">1</span></div>
+        <input id="stepEvery" type="range" min="1" max="8" value="1" />
+        <div class="inline"><label>Pitch Lock</label><span class="small" id="lockPitchValue">0</span></div>
+        <input id="lockPitch" type="range" min="-12" max="12" value="0" />
+        <label class="small"><input id="lockPitchEnable" type="checkbox" /> Enable</label>
+        <div class="inline"><label>Reverse</label><span class="small" id="lockReverseValue">Off</span></div>
+        <input id="lockReverse" type="checkbox" />
+        <div class="inline"><label>Slice</label><span class="small" id="lockSliceValue">0</span></div>
+        <input id="lockSlice" type="range" min="0" max="15" value="0" />
+        <label class="small"><input id="lockSliceEnable" type="checkbox" /> Enable</label>
+        <div class="inline"><label>Stretch</label><span class="small" id="lockStretchValue">1.0</span></div>
+        <input id="lockStretch" type="range" min="0.5" max="2" step="0.1" value="1" />
+        <label class="small"><input id="lockStretchEnable" type="checkbox" /> Enable</label>
+        <div class="inline"><label>Filter</label><span class="small" id="lockFilterValue">1200</span></div>
+        <input id="lockFilter" type="range" min="300" max="8000" value="1200" />
+        <label class="small"><input id="lockFilterEnable" type="checkbox" /> Enable</label>
+        <div class="inline"><label>Resonance</label><span class="small" id="lockResValue">1.0</span></div>
+        <input id="lockRes" type="range" min="0.1" max="12" step="0.1" value="1" />
+        <label class="small"><input id="lockResEnable" type="checkbox" /> Enable</label>
+        <div class="inline"><label>Decay</label><span class="small" id="lockDecayValue">0.5</span></div>
+        <input id="lockDecay" type="range" min="0.1" max="1.2" step="0.05" value="0.5" />
+        <label class="small"><input id="lockDecayEnable" type="checkbox" /> Enable</label>
+        <div class="inline"><label>FX Mix</label><span class="small" id="lockFxValue">30%</span></div>
+        <input id="lockFx" type="range" min="0" max="100" value="30" />
+        <label class="small"><input id="lockFxEnable" type="checkbox" /> Enable</label>
+        <button id="clearLocks">Clear Locks</button>
       </div>
     </section>
+
+    <section id="trackControls" class="track-controls"></section>
+
+    <div class="hint">
+      Beatdown feel: click toggles steps, Shift+Click cycles velocity, Right-click cycles microtiming (push/pull), Alt+Click selects step for locks. Humanize adds random looseness, swing drift, and subtle instability.
+    </div>
   </div>
 
   <script>
@@ -204,9 +449,195 @@
     ];
 
     const steps = 16;
-    const sequence = tracks.map(() => Array.from({ length: steps }, () => false));
+    const microOffsets = [-30, -18, -8, 0, 8, 18, 30];
+
+    const sequence = tracks.map(() => Array.from({ length: steps }, () => ({
+      on: false,
+      velocity: 0.7,
+      offset: 0,
+      humanOffset: 0,
+      humanVel: 1.0,
+      humanDetune: 0,
+      humanMod: 0,
+      cond: { chance: 100, every: 1 },
+      locks: {
+        pitch: null,
+        reverse: null,
+        stretch: null,
+        slice: null,
+        filter: null,
+        resonance: null,
+        decay: null,
+        fx: null
+      }
+    })));
+
+    const trackState = tracks.map(() => ({
+      mute: false,
+      cycle: 16,
+      stutter: 0.25,
+      source: "sample",
+      buffer: null,
+      reverseBuffer: null,
+      resampleBuffer: null,
+      liveNode: null,
+      liveGain: null,
+      trackOut: null,
+      fxNodes: null,
+      volume: 0.8,
+      pitch: 0,
+      decay: 0.5,
+      stretch: 1,
+      slice: 0,
+      filter: 1200,
+      resonance: 1.0,
+      crush: 0.0,
+      dist: 0.2,
+      delay: 0.2,
+      reverb: 0.2,
+      fx: 0.3,
+      lfo: 0.0
+      ,
+      style: "lofi"
+    }));
+
+    const trackLoopCount = tracks.map(() => 0);
+
+    const humanize = {
+      looseness: 24,
+      velocityVar: 0.18,
+      swingVar: 12,
+      pulseDrift: 0.6,
+      detune: 1.2,
+      mod: 0.18
+    };
+    const groovePresets = {
+      tight: { looseness: 8, velocityVar: 0.08, swingVar: 5, pulseDrift: 0.2, detune: 0.4, mod: 0.08 },
+      loose: { looseness: 24, velocityVar: 0.18, swingVar: 12, pulseDrift: 0.6, detune: 1.2, mod: 0.18 },
+      live: { looseness: 28, velocityVar: 0.22, swingVar: 18, pulseDrift: 0.9, detune: 1.4, mod: 0.22 },
+      theo: { looseness: 36, velocityVar: 0.3, swingVar: 24, pulseDrift: 1.3, detune: 1.8, mod: 0.3 }
+    };
+
+    // Pattern banks for sketch variety.
+    const POCKET_KICKS = [
+      [0, 6, 10, 12],
+      [0, 5, 9, 12],
+      [0, 6, 8, 12],
+      [0, 7, 10, 13],
+      [0, 6, 11, 14],
+      [0, 8, 10, 12]
+    ];
+    const POCKET_SNARES = [
+      [4, 12],
+      [4, 12, 15],
+      [4, 11]
+    ];
+    const POCKET_GHOSTS = [
+      [3, 7, 15],
+      [2, 10, 14],
+      [3, 9],
+      [6, 14]
+    ];
+    const POCKET_PERC = [
+      [11],
+      [9, 14],
+      [5, 13],
+      [7]
+    ];
+
+    const LURCH_KICKS = [
+      [0, 5, 9, 13],
+      [0, 6, 9, 14],
+      [0, 7, 11, 13],
+      [0, 5, 10, 14],
+      [0, 6, 10, 13],
+      [0, 7, 10, 15]
+    ];
+    const LURCH_SNARES = [
+      [4, 12],
+      [4, 12, 15],
+      [4, 11, 12]
+    ];
+    const LURCH_GHOSTS = [
+      [3, 7, 11, 15],
+      [2, 6, 10, 15],
+      [3, 9, 14],
+      [6, 10, 15]
+    ];
+    const LURCH_PERC = [
+      [5, 11],
+      [6, 10],
+      [7, 13],
+      [2, 14]
+    ];
+
+    const SHUFFLE_KICKS = [
+      [0, 7, 11, 14],
+      [0, 6, 11, 15],
+      [0, 8, 12, 15],
+      [0, 7, 12, 14],
+      [0, 5, 11, 15],
+      [0, 6, 12, 14]
+    ];
+    const SHUFFLE_SNARES = [
+      [4, 12, 15],
+      [4, 12],
+      [4, 12, 14]
+    ];
+    const SHUFFLE_GHOSTS = [
+      [6, 9],
+      [7, 10],
+      [5, 11],
+      [6, 12]
+    ];
+    const SHUFFLE_PERC = [
+      [5],
+      [13],
+      [9],
+      [7, 14]
+    ];
+    const SHUFFLE_RIDE = [
+      [2, 10],
+      [3, 11],
+      [1, 9]
+    ];
+    const HOUSE_KICKS = [
+      [0, 4, 8, 12],
+      [0, 4, 8, 12, 15],
+      [0, 4, 7, 8, 12]
+    ];
+    const HOUSE_SNARES = [
+      [4, 12],
+      [4, 12, 14]
+    ];
+    const TECHNO_KICKS = [
+      [0, 4, 8, 12],
+      [0, 4, 8, 12, 14],
+      [0, 4, 8, 11, 12]
+    ];
+    const TECHNO_SNARES = [
+      [4, 12],
+      [4, 12, 15]
+    ];
+    const HIPHOP_KICKS = [
+      [0, 7, 10, 13],
+      [0, 6, 9, 13],
+      [0, 5, 8, 12, 14]
+    ];
+    const HIPHOP_SNARES = [
+      [4, 12],
+      [4, 12, 15]
+    ];
+    const HIPHOP_GHOSTS = [
+      [3, 6, 14],
+      [2, 7, 10, 14],
+      [3, 9, 15]
+    ];
 
     const sequencer = document.getElementById("sequencer");
+    const trackControls = document.getElementById("trackControls");
+    const faders = document.getElementById("faders");
+    const knobs = document.getElementById("knobs");
 
     function buildGrid() {
       sequencer.innerHTML = "";
@@ -227,11 +658,24 @@
           step.className = "step";
           step.dataset.track = tIndex;
           step.dataset.step = s;
-          step.addEventListener("click", () => toggleStep(tIndex, s, step));
+          step.dataset.vel = "";
+
+          step.addEventListener("click", (event) => toggleStep(event, tIndex, s, step));
+          step.addEventListener("contextmenu", (event) => tweakMicroTiming(event, tIndex, s, step));
           grid.appendChild(step);
         }
 
         row.appendChild(grid);
+
+        const mute = document.createElement("button");
+        mute.className = "mute";
+        mute.textContent = "Mute";
+        mute.addEventListener("click", () => {
+          trackState[tIndex].mute = !trackState[tIndex].mute;
+          mute.classList.toggle("active", trackState[tIndex].mute);
+          mute.textContent = trackState[tIndex].mute ? "Muted" : "Mute";
+        });
+        row.appendChild(mute);
 
         const colorTag = document.createElement("div");
         colorTag.className = "label";
@@ -243,49 +687,1060 @@
       });
     }
 
-    function toggleStep(trackIndex, stepIndex, element) {
-      const value = !sequence[trackIndex][stepIndex];
-      sequence[trackIndex][stepIndex] = value;
-      element.classList.toggle("on", value);
+    function buildTrackControls() {
+      trackControls.innerHTML = "";
+      tracks.forEach((track, tIndex) => {
+        const card = document.createElement("div");
+        card.className = "track-card";
+        card.innerHTML = `
+          <h4>${track.name} Tone</h4>
+          <div class="inline"><label>Source</label><span class="small" id="sourceVal-${tIndex}">Sample</span></div>
+          <select data-track="${tIndex}" data-param="source">
+            <option value="sample">Sample</option>
+            <option value="live">Live</option>
+            <option value="resample">Resample</option>
+          </select>
+          <div class="inline"><label>Style</label><span class="small" id="styleVal-${tIndex}">Lo-fi</span></div>
+          <select data-track="${tIndex}" data-param="style">
+            <option value="lofi">Lo-fi</option>
+            <option value="metallic">Metallic</option>
+            <option value="dirty">Dirty</option>
+            <option value="soft">Soft</option>
+            <option value="random">Random</option>
+          </select>
+          <input data-track="${tIndex}" data-param="sample" type="file" accept="audio/*" />
+          <button data-track="${tIndex}" data-param="resample">Resample Track</button>
+          <div class="inline"><label>Pitch</label><span class="small" id="pitchVal-${tIndex}">0</span></div>
+          <input data-track="${tIndex}" data-param="pitch" type="range" min="-12" max="12" value="0" />
+          <div class="inline"><label>Decay</label><span class="small" id="decayVal-${tIndex}">50%</span></div>
+          <input data-track="${tIndex}" data-param="decay" type="range" min="10" max="100" value="50" />
+          <div class="inline"><label>Stretch</label><span class="small" id="stretchVal-${tIndex}">1.0</span></div>
+          <input data-track="${tIndex}" data-param="stretch" type="range" min="0.5" max="2" step="0.1" value="1" />
+          <div class="inline"><label>Slice</label><span class="small" id="sliceVal-${tIndex}">0</span></div>
+          <input data-track="${tIndex}" data-param="slice" type="range" min="0" max="15" value="0" />
+          <div class="inline"><label>Filter</label><span class="small" id="filterVal-${tIndex}">1200</span></div>
+          <input data-track="${tIndex}" data-param="filter" type="range" min="300" max="8000" value="1200" />
+          <div class="inline"><label>Resonance</label><span class="small" id="resVal-${tIndex}">1.0</span></div>
+          <input data-track="${tIndex}" data-param="res" type="range" min="0.1" max="12" step="0.1" value="1" />
+          <div class="inline"><label>Bit Crush</label><span class="small" id="crushVal-${tIndex}">0%</span></div>
+          <input data-track="${tIndex}" data-param="crush" type="range" min="0" max="100" value="0" />
+          <div class="inline"><label>Dist</label><span class="small" id="distVal-${tIndex}">20%</span></div>
+          <input data-track="${tIndex}" data-param="dist" type="range" min="0" max="100" value="20" />
+          <div class="inline"><label>Delay</label><span class="small" id="delayVal-${tIndex}">20%</span></div>
+          <input data-track="${tIndex}" data-param="delay" type="range" min="0" max="100" value="20" />
+          <div class="inline"><label>Reverb</label><span class="small" id="reverbVal-${tIndex}">20%</span></div>
+          <input data-track="${tIndex}" data-param="reverb" type="range" min="0" max="100" value="20" />
+          <div class="inline"><label>FX Mix</label><span class="small" id="fxVal-${tIndex}">30%</span></div>
+          <input data-track="${tIndex}" data-param="fx" type="range" min="0" max="100" value="30" />
+          <div class="inline"><label>LFO</label><span class="small" id="lfoVal-${tIndex}">0%</span></div>
+          <input data-track="${tIndex}" data-param="lfo" type="range" min="0" max="100" value="0" />
+          <div class="inline"><label>Cycle</label><span class="small" id="cycleVal-${tIndex}">16</span></div>
+          <input data-track="${tIndex}" data-param="cycle" type="range" min="8" max="16" value="16" />
+          <div class="inline"><label>Stutter</label><span class="small" id="stutterVal-${tIndex}">25%</span></div>
+          <input data-track="${tIndex}" data-param="stutter" type="range" min="0" max="100" value="25" />
+        `;
+        trackControls.appendChild(card);
+      });
+    }
+
+    function buildFaders() {
+      faders.innerHTML = "";
+      tracks.forEach((track, tIndex) => {
+        const wrap = document.createElement("div");
+        wrap.className = "fader";
+        wrap.innerHTML = `
+          <div>${track.name}</div>
+          <input data-track="${tIndex}" data-param="volume" type="range" min="0" max="100" value="80" />
+          <div class="small" id="volVal-${tIndex}">80%</div>
+        `;
+        faders.appendChild(wrap);
+      });
+    }
+
+    function buildKnobs() {
+      knobs.innerHTML = "";
+      tracks.forEach((track, tIndex) => {
+        const wrap = document.createElement("div");
+        wrap.className = "knob";
+        wrap.innerHTML = `
+          <div class="small">${track.name}</div>
+          <div class="knob-visual" id="knobPitchVis-${tIndex}"></div>
+          <input data-track="${tIndex}" data-param="pitch" type="range" min="-12" max="12" value="0" />
+          <div class="small">Pitch</div>
+
+          <div class="knob-visual" id="knobFilterVis-${tIndex}"></div>
+          <input data-track="${tIndex}" data-param="filter" type="range" min="300" max="8000" value="1200" />
+          <div class="small">Filter</div>
+
+          <div class="knob-visual" id="knobDecayVis-${tIndex}"></div>
+          <input data-track="${tIndex}" data-param="decay" type="range" min="10" max="100" value="50" />
+          <div class="small">Decay</div>
+        `;
+        knobs.appendChild(wrap);
+      });
+    }
+
+    function updateTrackParam(trackIndex, param, value) {
+      const state = trackState[trackIndex];
+      if (param === "pitch") state.pitch = Number(value);
+      if (param === "decay") state.decay = Number(value) / 100;
+      if (param === "volume") {
+        state.volume = Number(value) / 100;
+        if (state.trackOut) state.trackOut.gain.value = state.volume;
+      }
+      if (param === "stretch") state.stretch = Number(value);
+      if (param === "slice") state.slice = Number(value);
+      if (param === "filter") state.filter = Number(value);
+      if (param === "res") state.resonance = Number(value);
+      if (param === "crush") state.crush = Number(value) / 100;
+      if (param === "dist") state.dist = Number(value) / 100;
+      if (param === "delay") state.delay = Number(value) / 100;
+      if (param === "reverb") state.reverb = Number(value) / 100;
+      if (param === "fx") state.fx = Number(value) / 100;
+      if (param === "lfo") state.lfo = Number(value) / 100;
+      if (param === "style") state.style = value;
+      if (param === "cycle") state.cycle = Math.round(Number(value));
+      if (param === "stutter") state.stutter = Number(value) / 100;
+      if (param === "source") {
+        state.source = value;
+        const label = document.getElementById(`sourceVal-${trackIndex}`);
+        if (label) label.textContent = value.charAt(0).toUpperCase() + value.slice(1);
+      }
+      if (param === "style") {
+        const label = document.getElementById(`styleVal-${trackIndex}`);
+        if (label) {
+          const pretty = value === "lofi" ? "Lo-fi" : value.charAt(0).toUpperCase() + value.slice(1);
+          label.textContent = pretty;
+        }
+      }
+
+      const map = {
+        pitch: `pitchVal-${trackIndex}`,
+        decay: `decayVal-${trackIndex}`,
+        stretch: `stretchVal-${trackIndex}`,
+        slice: `sliceVal-${trackIndex}`,
+        filter: `filterVal-${trackIndex}`,
+        res: `resVal-${trackIndex}`,
+        crush: `crushVal-${trackIndex}`,
+        dist: `distVal-${trackIndex}`,
+        delay: `delayVal-${trackIndex}`,
+        reverb: `reverbVal-${trackIndex}`,
+        fx: `fxVal-${trackIndex}`,
+        lfo: `lfoVal-${trackIndex}`,
+        cycle: `cycleVal-${trackIndex}`,
+        stutter: `stutterVal-${trackIndex}`
+        ,
+        volume: `volVal-${trackIndex}`
+      };
+
+      const el = document.getElementById(map[param]);
+      if (!el) return;
+      if (param === "pitch") el.textContent = value;
+      if (param === "decay") el.textContent = `${value}%`;
+      if (param === "stretch") el.textContent = Number(value).toFixed(1);
+      if (param === "slice") el.textContent = value;
+      if (param === "filter") el.textContent = value;
+      if (param === "res") el.textContent = Number(value).toFixed(1);
+      if (param === "crush") el.textContent = `${value}%`;
+      if (param === "dist") el.textContent = `${value}%`;
+      if (param === "delay") el.textContent = `${value}%`;
+      if (param === "reverb") el.textContent = `${value}%`;
+      if (param === "fx") el.textContent = `${value}%`;
+      if (param === "lfo") el.textContent = `${value}%`;
+      if (param === "cycle") el.textContent = value;
+      if (param === "stutter") el.textContent = `${value}%`;
+      if (param === "volume") el.textContent = `${value}%`;
+    }
+
+    function toggleStep(event, trackIndex, stepIndex, element) {
+      if (event.altKey) {
+        selectStep(trackIndex, stepIndex);
+        return;
+      }
+      const step = sequence[trackIndex][stepIndex];
+      if (event.shiftKey) {
+        // Beatdown velocity variation: shift-click cycles velocity per step.
+        step.velocity = Number((step.velocity + 0.15).toFixed(2));
+        if (step.velocity > 1.05) step.velocity = 0.35;
+        element.dataset.vel = step.velocity.toFixed(2);
+        return;
+      }
+      step.on = !step.on;
+      step.velocity = step.velocity || 0.7;
+      element.classList.toggle("on", step.on);
+      element.dataset.vel = step.on ? step.velocity.toFixed(2) : "";
+      applyStepVisuals(step, element);
+    }
+
+    function tweakMicroTiming(event, trackIndex, stepIndex, element) {
+      event.preventDefault();
+      const step = sequence[trackIndex][stepIndex];
+      const currentIndex = microOffsets.indexOf(step.offset);
+      const nextIndex = (currentIndex + 1) % microOffsets.length;
+      step.offset = microOffsets[nextIndex];
+      // Visualize microtiming by nudging the step horizontally.
+      applyStepVisuals(step, element);
+    }
+
+    function applyHumanizePreset(name) {
+      const preset = groovePresets[name];
+      if (!preset) return;
+      humanize.looseness = preset.looseness;
+      humanize.velocityVar = preset.velocityVar;
+      humanize.swingVar = preset.swingVar;
+      humanize.pulseDrift = preset.pulseDrift;
+      humanize.detune = preset.detune;
+      humanize.mod = preset.mod;
+      updateHumanizeUI();
+      rollHumanizeForAllSteps();
+    }
+
+    function getStyleProfile(style) {
+      if (style === "metallic") return { filter: 0.35, res: 0.6, dist: 0.05, crush: 0.05, delay: 0.2, reverb: 0.15, fx: 0.2, lfo: 0.25, decay: -0.05 };
+      if (style === "dirty") return { filter: -0.25, res: 0.2, dist: 0.35, crush: 0.35, delay: 0.1, reverb: 0.05, fx: 0.25, lfo: 0.2, decay: 0.05 };
+      if (style === "soft") return { filter: -0.2, res: -0.1, dist: -0.25, crush: -0.3, delay: 0.1, reverb: 0.35, fx: 0.2, lfo: 0.1, decay: 0.2 };
+      return { filter: -0.1, res: 0.1, dist: -0.05, crush: 0.15, delay: 0.05, reverb: 0.1, fx: 0.1, lfo: 0.1, decay: 0.05 };
+    }
+
+    function updateHumanizeUI() {
+      looseness.value = humanize.looseness;
+      velVar.value = Math.round(humanize.velocityVar * 100);
+      swingVar.value = humanize.swingVar;
+      pulse.value = humanize.pulseDrift;
+      detune.value = humanize.detune;
+      mod.value = Math.round(humanize.mod * 100);
+      loosenessValue.textContent = humanize.looseness;
+      velVarValue.textContent = `${Math.round(humanize.velocityVar * 100)}%`;
+      swingVarValue.textContent = humanize.swingVar;
+      pulseValue.textContent = humanize.pulseDrift.toFixed(1);
+      detuneValue.textContent = humanize.detune.toFixed(1);
+      modValue.textContent = `${Math.round(humanize.mod * 100)}%`;
+    }
+
+    function rollHumanizeForStep(step) {
+      const chaosScale = getChaosScale();
+      step.humanOffset = randomInRange(-humanize.looseness * chaosScale, humanize.looseness * chaosScale);
+      step.humanVel = 1 + randomInRange(-humanize.velocityVar * chaosScale, humanize.velocityVar * chaosScale);
+      step.humanDetune = randomInRange(-humanize.detune * chaosScale, humanize.detune * chaosScale);
+      step.humanMod = randomInRange(-humanize.mod * chaosScale, humanize.mod * chaosScale);
+    }
+
+    function rollHumanizeForAllSteps() {
+      sequence.forEach((row) => row.forEach((step) => rollHumanizeForStep(step)));
+      refreshHumanizeVisuals();
+    }
+
+    function applyStepVisuals(step, el) {
+      const totalOffset = step.offset + step.humanOffset;
+      const humanOpacity = clamp(0.7 + (step.humanVel - 1) * 0.6, 0.55, 1);
+      el.style.transform = `translateX(${totalOffset / 4}px)`;
+      el.style.opacity = step.on ? humanOpacity : 0.7;
+    }
+
+    function refreshHumanizeVisuals() {
+      sequence.forEach((row, rowIndex) => {
+        row.forEach((step, stepIndex) => {
+          const el = document.querySelector(`.step[data-track="${rowIndex}"][data-step="${stepIndex}"]`);
+          applyStepVisuals(step, el);
+        });
+      });
+    }
+
+    function selectStep(trackIndex, stepIndex) {
+      selectedStep = { trackIndex, stepIndex };
+      const step = sequence[trackIndex][stepIndex];
+      stepLabel.textContent = `Track ${trackIndex + 1} • Step ${stepIndex + 1}`;
+      stepChance.value = step.cond.chance;
+      stepEvery.value = step.cond.every;
+      chanceValue.textContent = `${step.cond.chance}%`;
+      everyValue.textContent = step.cond.every;
+
+      lockPitch.value = step.locks.pitch ?? trackState[trackIndex].pitch;
+      lockPitchEnable.checked = step.locks.pitch !== null;
+      lockPitchValue.textContent = lockPitch.value;
+
+      lockReverse.checked = step.locks.reverse === true;
+      lockReverseValue.textContent = lockReverse.checked ? "On" : "Off";
+
+      lockSlice.value = step.locks.slice ?? trackState[trackIndex].slice;
+      lockSliceEnable.checked = step.locks.slice !== null;
+      lockSliceValue.textContent = lockSlice.value;
+
+      lockStretch.value = step.locks.stretch ?? trackState[trackIndex].stretch;
+      lockStretchEnable.checked = step.locks.stretch !== null;
+      lockStretchValue.textContent = Number(lockStretch.value).toFixed(1);
+
+      lockFilter.value = step.locks.filter ?? trackState[trackIndex].filter;
+      lockFilterEnable.checked = step.locks.filter !== null;
+      lockFilterValue.textContent = lockFilter.value;
+
+      lockRes.value = step.locks.resonance ?? trackState[trackIndex].resonance;
+      lockResEnable.checked = step.locks.resonance !== null;
+      lockResValue.textContent = Number(lockRes.value).toFixed(1);
+
+      lockDecay.value = step.locks.decay ?? trackState[trackIndex].decay;
+      lockDecayEnable.checked = step.locks.decay !== null;
+      lockDecayValue.textContent = Number(lockDecay.value).toFixed(2);
+
+      lockFx.value = step.locks.fx ?? trackState[trackIndex].fx * 100;
+      lockFxEnable.checked = step.locks.fx !== null;
+      lockFxValue.textContent = `${lockFx.value}%`;
+    }
+
+    function updateSelectedStepLock(param, value, enabled) {
+      if (!selectedStep) return;
+      const { trackIndex, stepIndex } = selectedStep;
+      const step = sequence[trackIndex][stepIndex];
+      step.locks[param] = enabled ? value : null;
+    }
+    function resetSequence() {
+      sequence.forEach((row) => row.forEach((step) => {
+        step.on = false;
+        step.velocity = 0.7;
+        step.offset = 0;
+        step.cond = { chance: 100, every: 1 };
+        step.locks = { pitch: null, reverse: null, stretch: null, slice: null, filter: null, resonance: null, decay: null, fx: null };
+        rollHumanizeForStep(step);
+      }));
+      document.querySelectorAll(".step").forEach((step) => {
+        step.classList.remove("on");
+        step.dataset.vel = "";
+        step.style.transform = "";
+        step.style.opacity = "";
+      });
+    }
+
+    function sketchPocket() {
+      setSketchActive("sketchA");
+      resetSequence();
+      // Pocket: deep low-end with subtle ghost snare.
+      const kicks = mutatePattern(pickVariant(POCKET_KICKS), 2, [0, 2, 3, 5, 6, 8, 9, 10, 12, 14, 15]);
+      const snares = mutatePattern(pickVariant(POCKET_SNARES), 1, [4, 11, 12, 15]);
+      const ghosts = mutatePattern(pickVariant(POCKET_GHOSTS), 2, [2, 3, 6, 7, 9, 10, 14, 15]);
+      fillKickPattern(kicks);
+      fillSnarePattern(snares);
+      fillGhosts(1, ghosts, 0.42);
+      fillHatPattern(0.5);
+      fillPercPattern(pickVariant(POCKET_PERC));
+      addHatAccentOverlay(0.15);
+      pushSketchVariation(0.35);
+      finalizeSketch();
+    }
+
+    function sketchLurch() {
+      setSketchActive("sketchB");
+      resetSequence();
+      // Lurch: offbeat kicks, broken hats, more ghost activity.
+      const kicks = mutatePattern(pickVariant(LURCH_KICKS), 3, [0, 2, 5, 6, 7, 9, 10, 13, 14, 15]);
+      const snares = mutatePattern(pickVariant(LURCH_SNARES), 2, [4, 11, 12, 15]);
+      const ghosts = mutatePattern(pickVariant(LURCH_GHOSTS), 3, [2, 3, 6, 7, 9, 10, 11, 14, 15]);
+      fillKickPattern(kicks);
+      fillSnarePattern(snares);
+      fillGhosts(1, ghosts, 0.4);
+      fillHatPattern(0.35);
+      fillPercPattern(pickVariant(LURCH_PERC));
+      addHatAccentOverlay(0.2);
+      pushSketchVariation(0.4);
+      finalizeSketch();
+    }
+
+    function sketchShuffle() {
+      setSketchActive("sketchC");
+      resetSequence();
+      // Shuffle: sparse kicks, busier top, shifted accents.
+      const kicks = mutatePattern(pickVariant(SHUFFLE_KICKS), 2, [0, 2, 5, 6, 7, 8, 11, 12, 14, 15]);
+      const snares = mutatePattern(pickVariant(SHUFFLE_SNARES), 1, [4, 12, 15]);
+      const ghosts = mutatePattern(pickVariant(SHUFFLE_GHOSTS), 2, [5, 6, 7, 9, 10, 11, 12]);
+      fillKickPattern(kicks);
+      fillSnarePattern(snares);
+      fillGhosts(1, ghosts, 0.38);
+      fillHatPattern(0.65);
+      fillRidePattern(pickVariant(SHUFFLE_RIDE));
+      fillPercPattern(pickVariant(SHUFFLE_PERC));
+      addHatAccentOverlay(0.25);
+      pushSketchVariation(0.35);
+      finalizeSketch();
+    }
+
+    function sketchHouse() {
+      setSketchActive("sketchHouse");
+      resetSequence();
+      // House: four-on-the-floor with offbeat hats.
+      const kicks = mutatePattern(pickVariant(HOUSE_KICKS), 1, [0, 4, 7, 8, 12, 15]);
+      const snares = mutatePattern(pickVariant(HOUSE_SNARES), 1, [4, 12, 14]);
+      fillKickPattern(kicks);
+      fillSnarePattern(snares);
+      [2, 6, 10, 14].forEach((s) => activateStep(2, s, 0.5));
+      fillHatPattern(0.35);
+      fillPercPattern([7, 11]);
+      addHatAccentOverlay(0.2);
+      pushSketchVariation(0.45);
+      finalizeSketch();
+    }
+
+    function sketchTechno() {
+      setSketchActive("sketchTechno");
+      resetSequence();
+      // Techno: rigid kicks, driving hats, sparse perc.
+      const kicks = mutatePattern(pickVariant(TECHNO_KICKS), 1, [0, 4, 8, 11, 12, 14, 15]);
+      const snares = mutatePattern(pickVariant(TECHNO_SNARES), 1, [4, 12, 15]);
+      fillKickPattern(kicks);
+      fillSnarePattern(snares);
+      for (let i = 0; i < steps; i++) activateStep(2, i, 0.38 + Math.random() * 0.12);
+      fillPercPattern([3, 7, 11, 15]);
+      addHatAccentOverlay(0.35);
+      pushSketchVariation(0.5);
+      finalizeSketch();
+    }
+
+    function sketchHipHop() {
+      setSketchActive("sketchHipHop");
+      resetSequence();
+      // Hip hop: syncopated kicks, laid-back hats, ghosted snare.
+      const kicks = mutatePattern(pickVariant(HIPHOP_KICKS), 2, [0, 3, 5, 6, 7, 9, 10, 12, 13, 14, 15]);
+      const snares = mutatePattern(pickVariant(HIPHOP_SNARES), 1, [4, 12, 15]);
+      const ghosts = mutatePattern(pickVariant(HIPHOP_GHOSTS), 2, [2, 3, 6, 7, 9, 10, 14, 15]);
+      fillKickPattern(kicks);
+      fillSnarePattern(snares);
+      fillGhosts(1, ghosts, 0.35);
+      fillHatPattern(0.45);
+      fillPercPattern([9, 13]);
+      pushSketchVariation(0.45);
+      finalizeSketch();
+    }
+
+    function finalizeSketch() {
+      applyHumanizePreset(document.getElementById("groovePreset").value);
+      randomizeHumanizeDials(0.35);
+      applySketchParamNudges();
+      rollHumanizeForAllSteps();
+      refreshStepUI();
+    }
+
+    function pickVariant(options) {
+      return options[Math.floor(Math.random() * options.length)];
+    }
+
+    function mutatePattern(stepsList, maxMutations, allowedSteps) {
+      const stepsSet = new Set(stepsList);
+      const mutations = Math.floor(Math.random() * (maxMutations + 1));
+      for (let i = 0; i < mutations; i++) {
+        const roll = Math.random();
+        if (roll < 0.4 && stepsSet.size > 1) {
+          // Drop a hit.
+          const existing = Array.from(stepsSet);
+          stepsSet.delete(existing[Math.floor(Math.random() * existing.length)]);
+        } else if (roll < 0.75) {
+          // Shift a hit by ±1 if possible.
+          const existing = Array.from(stepsSet);
+          const base = existing[Math.floor(Math.random() * existing.length)];
+          const shift = Math.random() > 0.5 ? 1 : -1;
+          const candidate = (base + shift + steps) % steps;
+          if (allowedSteps.includes(candidate)) {
+            stepsSet.delete(base);
+            stepsSet.add(candidate);
+          }
+        } else {
+          // Add a new hit from allowed pool.
+          const candidate = allowedSteps[Math.floor(Math.random() * allowedSteps.length)];
+          stepsSet.add(candidate);
+        }
+      }
+      return Array.from(stepsSet).sort((a, b) => a - b);
+    }
+
+    function addHatAccentOverlay(probability) {
+      // Subtle 5-step accent overlay (still 4/4 core).
+      if (Math.random() > probability) return;
+      for (let i = 0; i < steps; i += 5) {
+        if (Math.random() < 0.7) activateStep(2, i, 0.35);
+      }
+    }
+
+    function applySketchParamNudges() {
+      // Stronger per-sketch param variation to make sounds more distinct.
+      trackState.forEach((state, index) => {
+        const chaosScale = getChaosScale();
+        const pitchNudge = (Math.random() - 0.5) * 5 * chaosScale; // ±2.5 semitones
+        const decayNudge = (Math.random() - 0.5) * 0.5 * chaosScale; // ±25%
+        const filterNudge = (Math.random() - 0.5) * 0.5 * chaosScale; // ±25%
+        const distNudge = (Math.random() - 0.5) * 0.35 * chaosScale;
+        const crushNudge = (Math.random() - 0.5) * 0.3 * chaosScale;
+        const delayNudge = (Math.random() - 0.5) * 0.3 * chaosScale;
+        const reverbNudge = (Math.random() - 0.5) * 0.3 * chaosScale;
+        const lfoNudge = (Math.random() - 0.5) * 0.4 * chaosScale;
+        const fxNudge = (Math.random() - 0.5) * 0.4 * chaosScale;
+        const stretchNudge = (Math.random() - 0.5) * 0.4 * chaosScale;
+        const sliceNudge = Math.floor((Math.random() - 0.5) * 6 * chaosScale);
+
+        if (index >= 2) {
+          state.pitch = clamp(state.pitch + pitchNudge, -12, 12);
+        }
+        state.decay = clamp(state.decay + decayNudge, 0.08, 1.2);
+        state.filter = clamp(state.filter * (1 + filterNudge), 300, 8000);
+        state.dist = clamp(state.dist + distNudge, 0, 1);
+        state.crush = clamp(state.crush + crushNudge, 0, 1);
+        state.delay = clamp(state.delay + delayNudge, 0, 1);
+        state.reverb = clamp(state.reverb + reverbNudge, 0, 1);
+        state.lfo = clamp(state.lfo + lfoNudge, 0, 1);
+        state.fx = clamp(state.fx + fxNudge, 0, 1);
+        state.stretch = clamp(state.stretch + stretchNudge, 0.5, 2);
+        state.slice = clamp(state.slice + sliceNudge, 0, 15);
+
+        updateTrackParam(index, "pitch", state.pitch);
+        updateTrackParam(index, "decay", state.decay * 100);
+        updateTrackParam(index, "filter", state.filter);
+        updateTrackParam(index, "dist", state.dist * 100);
+        updateTrackParam(index, "crush", state.crush * 100);
+        updateTrackParam(index, "delay", state.delay * 100);
+        updateTrackParam(index, "reverb", state.reverb * 100);
+        updateTrackParam(index, "lfo", state.lfo * 100);
+        updateTrackParam(index, "fx", state.fx * 100);
+        updateTrackParam(index, "stretch", state.stretch);
+        updateTrackParam(index, "slice", state.slice);
+        updateKnobVisual(index);
+      });
+    }
+
+    function pushSketchVariation(amount) {
+      const chaosScale = getChaosScale();
+      const scaled = amount * chaosScale;
+      // Global variation surge that hits groove + sound shaping.
+      humanize.looseness = clamp(humanize.looseness + randomInRange(-12, 12) * scaled, 0, 40);
+      humanize.velocityVar = clamp(humanize.velocityVar + randomInRange(-0.2, 0.2) * scaled, 0, 0.5);
+      humanize.swingVar = clamp(humanize.swingVar + randomInRange(-10, 10) * scaled, 0, 30);
+      humanize.pulseDrift = clamp(humanize.pulseDrift + randomInRange(-0.6, 0.6) * scaled, 0, 2);
+      humanize.detune = clamp(humanize.detune + randomInRange(-0.8, 0.8) * scaled, 0, 2);
+      humanize.mod = clamp(humanize.mod + randomInRange(-0.2, 0.2) * scaled, 0, 0.5);
+      updateHumanizeUI();
+
+      trackState.forEach((state, index) => {
+        const extraFilter = 1 + randomInRange(-0.35, 0.35) * scaled;
+        const extraDecay = randomInRange(-0.35, 0.35) * scaled;
+        state.filter = clamp(state.filter * extraFilter, 300, 8000);
+        state.decay = clamp(state.decay + extraDecay, 0.08, 1.2);
+        state.dist = clamp(state.dist + randomInRange(-0.35, 0.35) * scaled, 0, 1);
+        state.crush = clamp(state.crush + randomInRange(-0.35, 0.35) * scaled, 0, 1);
+        state.lfo = clamp(state.lfo + randomInRange(-0.4, 0.4) * scaled, 0, 1);
+        updateTrackParam(index, "filter", state.filter);
+        updateTrackParam(index, "decay", state.decay * 100);
+        updateTrackParam(index, "dist", state.dist * 100);
+        updateTrackParam(index, "crush", state.crush * 100);
+        updateTrackParam(index, "lfo", state.lfo * 100);
+      });
+    }
+
+    function setSketchActive(activeId) {
+      const ids = ["sketchA", "sketchB", "sketchC", "sketchHouse", "sketchTechno", "sketchHipHop"];
+      ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.toggle("active", id === activeId);
+      });
+    }
+
+    function updateKnobVisual(trackIndex) {
+      const pitchVal = trackState[trackIndex].pitch;
+      const filterVal = trackState[trackIndex].filter;
+      const decayVal = trackState[trackIndex].decay;
+      const pitchAngle = mapRange(pitchVal, -12, 12, -135, 135);
+      const filterAngle = mapRange(filterVal, 300, 8000, -135, 135);
+      const decayAngle = mapRange(decayVal, 0.1, 1.2, -135, 135);
+      const pitchVis = document.getElementById(`knobPitchVis-${trackIndex}`);
+      const filterVis = document.getElementById(`knobFilterVis-${trackIndex}`);
+      const decayVis = document.getElementById(`knobDecayVis-${trackIndex}`);
+      if (pitchVis) pitchVis.style.setProperty("--angle", `${pitchAngle}deg`);
+      if (filterVis) filterVis.style.setProperty("--angle", `${filterAngle}deg`);
+      if (decayVis) decayVis.style.setProperty("--angle", `${decayAngle}deg`);
+    }
+
+    function mapRange(value, inMin, inMax, outMin, outMax) {
+      const clamped = clamp(value, inMin, inMax);
+      return outMin + ((clamped - inMin) / (inMax - inMin)) * (outMax - outMin);
+    }
+
+    function randomizeHumanizeDials(amount) {
+      const chaosScale = getChaosScale();
+      const scaled = amount * chaosScale;
+      humanize.looseness = clamp(humanize.looseness + randomInRange(-8, 8) * scaled, 0, 40);
+      humanize.velocityVar = clamp(humanize.velocityVar + randomInRange(-0.1, 0.1) * scaled, 0, 0.4);
+      humanize.swingVar = clamp(humanize.swingVar + randomInRange(-6, 6) * scaled, 0, 30);
+      humanize.pulseDrift = clamp(humanize.pulseDrift + randomInRange(-0.4, 0.4) * scaled, 0, 2);
+      humanize.detune = clamp(humanize.detune + randomInRange(-0.4, 0.4) * scaled, 0, 2);
+      humanize.mod = clamp(humanize.mod + randomInRange(-0.1, 0.1) * scaled, 0, 0.4);
+      updateHumanizeUI();
+    }
+
+    function refreshStepUI() {
+      sequence.forEach((row, rowIndex) => {
+        row.forEach((step, stepIndex) => {
+          const el = document.querySelector(`.step[data-track="${rowIndex}"][data-step="${stepIndex}"]`);
+          el.classList.toggle("on", step.on);
+          el.dataset.vel = step.on ? step.velocity.toFixed(2) : "";
+          applyStepVisuals(step, el);
+        });
+      });
+    }
+
+    function fillKickPattern(stepsList) {
+      stepsList.forEach((s) => activateStep(0, s, 0.85));
+    }
+
+    function fillSnarePattern(stepsList) {
+      stepsList.forEach((s) => activateStep(1, s, 0.65));
+    }
+
+    function fillHatPattern(density) {
+      for (let i = 0; i < steps; i++) {
+        if (Math.random() < density) activateStep(2, i, 0.45 + Math.random() * 0.3);
+      }
+    }
+
+    function fillRidePattern(stepsList) {
+      stepsList.forEach((s) => activateStep(6, s, 0.35));
+    }
+
+    function fillPercPattern(stepsList) {
+      stepsList.forEach((s) => activateStep(5, s, 0.4));
+    }
+
+    function fillGhosts(trackIndex, stepsList, velocity) {
+      stepsList.forEach((s) => activateStep(trackIndex, s, velocity));
+    }
+
+    function activateStep(trackIndex, stepIndex, velocity) {
+      const step = sequence[trackIndex][stepIndex];
+      step.on = true;
+      step.velocity = velocity;
+      step.offset = microOffsets[Math.floor(Math.random() * microOffsets.length)];
+      rollHumanizeForStep(step);
+    }
+
+    function randomInRange(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    function getChaosScale() {
+      const chaosEl = document.getElementById("chaos");
+      if (!chaosEl) return 1;
+      return clamp(Number(chaosEl.value) / 100, 0, 2);
     }
 
     buildGrid();
+    buildTrackControls();
+    buildFaders();
+    buildKnobs();
+    rollHumanizeForAllSteps();
+
+    trackControls.addEventListener("input", (event) => {
+      if (event.target.matches("input[type=\"range\"][data-track]")) {
+        const trackIndex = Number(event.target.dataset.track);
+        const param = event.target.dataset.param;
+        updateTrackParam(trackIndex, param, event.target.value);
+      }
+    });
+
+    faders.addEventListener("input", (event) => {
+      if (event.target.matches("input[data-track]")) {
+        const trackIndex = Number(event.target.dataset.track);
+        updateTrackParam(trackIndex, "volume", event.target.value);
+      }
+    });
+
+    knobs.addEventListener("input", (event) => {
+      if (event.target.matches("input[data-track]")) {
+        const trackIndex = Number(event.target.dataset.track);
+        const param = event.target.dataset.param;
+        updateTrackParam(trackIndex, param, event.target.value);
+        updateKnobVisual(trackIndex);
+      }
+    });
+
+    trackControls.addEventListener("change", (event) => {
+      if (event.target.matches("select[data-track]")) {
+        const trackIndex = Number(event.target.dataset.track);
+        const param = event.target.dataset.param;
+        updateTrackParam(trackIndex, param, event.target.value);
+        if (event.target.value === "live") {
+          initLiveInput();
+        }
+      }
+      if (event.target.matches("input[type=\"file\"][data-track]")) {
+        const trackIndex = Number(event.target.dataset.track);
+        const file = event.target.files[0];
+        if (file) loadSample(trackIndex, file);
+      }
+    });
+
+    trackControls.addEventListener("click", (event) => {
+      if (event.target.matches("button[data-param=\"resample\"]")) {
+        const trackIndex = Number(event.target.dataset.track);
+        resampleTrack(trackIndex);
+      }
+    });
 
     let audioContext;
     let masterGain;
+    let masterCompressor;
+    let masterSaturation;
+    let reverbImpulse;
     let isPlaying = false;
     let currentStep = 0;
     let schedulerId;
     let nextNoteTime = 0;
+    let swingDriftState = 0;
+    let pulseDriftState = 0;
+    let selectedStep = null;
+    let recorderNode;
+    let recorderMonitor;
+    let isRecording = false;
+    let recordBuffersL = [];
+    let recordBuffersR = [];
+    let recordLength = 0;
+    let isResamplingMaster = false;
 
     const tempo = document.getElementById("tempo");
     const tempoValue = document.getElementById("tempoValue");
     const swing = document.getElementById("swing");
     const swingValue = document.getElementById("swingValue");
-    const master = document.getElementById("master");
-    const masterValue = document.getElementById("masterValue");
+    const tape = document.getElementById("tape");
+    const tapeValue = document.getElementById("tapeValue");
+    const layer = document.getElementById("layer");
+    const layerValue = document.getElementById("layerValue");
+    const groovePreset = document.getElementById("groovePreset");
+    const looseness = document.getElementById("looseness");
+    const loosenessValue = document.getElementById("loosenessValue");
+    const velVar = document.getElementById("velVar");
+    const velVarValue = document.getElementById("velVarValue");
+    const swingVar = document.getElementById("swingVar");
+    const swingVarValue = document.getElementById("swingVarValue");
+    const pulse = document.getElementById("pulse");
+    const pulseValue = document.getElementById("pulseValue");
+    const detune = document.getElementById("detune");
+    const detuneValue = document.getElementById("detuneValue");
+    const mod = document.getElementById("mod");
+    const modValue = document.getElementById("modValue");
+    const chaos = document.getElementById("chaos");
+    const chaosValue = document.getElementById("chaosValue");
+    const xyPad = document.getElementById("xyPad");
+    const xyCrosshair = document.getElementById("xyCrosshair");
+    const xyHandle = document.getElementById("xyHandle");
+    const stepLabel = document.getElementById("stepLabel");
+    const stepChance = document.getElementById("stepChance");
+    const stepEvery = document.getElementById("stepEvery");
+    const chanceValue = document.getElementById("chanceValue");
+    const everyValue = document.getElementById("everyValue");
+    const lockPitch = document.getElementById("lockPitch");
+    const lockPitchEnable = document.getElementById("lockPitchEnable");
+    const lockPitchValue = document.getElementById("lockPitchValue");
+    const lockReverse = document.getElementById("lockReverse");
+    const lockReverseValue = document.getElementById("lockReverseValue");
+    const lockSlice = document.getElementById("lockSlice");
+    const lockSliceEnable = document.getElementById("lockSliceEnable");
+    const lockSliceValue = document.getElementById("lockSliceValue");
+    const lockStretch = document.getElementById("lockStretch");
+    const lockStretchEnable = document.getElementById("lockStretchEnable");
+    const lockStretchValue = document.getElementById("lockStretchValue");
+    const lockFilter = document.getElementById("lockFilter");
+    const lockFilterEnable = document.getElementById("lockFilterEnable");
+    const lockFilterValue = document.getElementById("lockFilterValue");
+    const lockRes = document.getElementById("lockRes");
+    const lockResEnable = document.getElementById("lockResEnable");
+    const lockResValue = document.getElementById("lockResValue");
+    const lockDecay = document.getElementById("lockDecay");
+    const lockDecayEnable = document.getElementById("lockDecayEnable");
+    const lockDecayValue = document.getElementById("lockDecayValue");
+    const lockFx = document.getElementById("lockFx");
+    const lockFxEnable = document.getElementById("lockFxEnable");
+    const lockFxValue = document.getElementById("lockFxValue");
+    const clearLocks = document.getElementById("clearLocks");
+    const recordButton = document.getElementById("record");
+    const exportWavButton = document.getElementById("exportWav");
+    const recordStatus = document.getElementById("recordStatus");
 
     function initAudio() {
       if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         masterGain = audioContext.createGain();
-        masterGain.gain.value = master.value / 100;
-        masterGain.connect(audioContext.destination);
+        masterGain.gain.value = 0.9;
+
+        masterCompressor = audioContext.createDynamicsCompressor();
+        masterCompressor.threshold.value = -18;
+        masterCompressor.ratio.value = 3.5;
+        masterCompressor.attack.value = 0.01;
+        masterCompressor.release.value = 0.2;
+
+        masterSaturation = createWaveshaper(1.1);
+        updateTape();
+        reverbImpulse = createReverbImpulse(2.2, 2.0);
+
+        trackState.forEach((track) => {
+          track.trackOut = audioContext.createGain();
+          track.trackOut.gain.value = track.volume;
+          track.fxNodes = createTrackFxNodes();
+          track.fxNodes.output.connect(track.trackOut);
+          track.trackOut.connect(masterGain);
+        });
+
+        masterGain
+          .connect(masterCompressor)
+          .connect(masterSaturation)
+          .connect(audioContext.destination);
       }
     }
 
+    function initRecorder() {
+      if (recorderNode) return;
+      recorderNode = audioContext.createScriptProcessor(4096, 2, 2);
+      recorderNode.onaudioprocess = (event) => {
+        if (!isRecording) return;
+        const inputL = event.inputBuffer.getChannelData(0);
+        const inputR = event.inputBuffer.numberOfChannels > 1
+          ? event.inputBuffer.getChannelData(1)
+          : inputL;
+        recordBuffersL.push(new Float32Array(inputL));
+        recordBuffersR.push(new Float32Array(inputR));
+        recordLength += inputL.length;
+      };
+      recorderMonitor = audioContext.createGain();
+      recorderMonitor.gain.value = 0;
+      masterSaturation.connect(recorderNode);
+      recorderNode.connect(recorderMonitor).connect(audioContext.destination);
+    }
+
+    function startRecording() {
+      initAudio();
+      initRecorder();
+      recordBuffersL = [];
+      recordBuffersR = [];
+      recordLength = 0;
+      isRecording = true;
+      recordStatus.textContent = "Recording...";
+      recordButton.classList.add("active");
+    }
+
+    function stopRecording() {
+      if (!isRecording) return;
+      isRecording = false;
+      recordButton.classList.remove("active");
+      recordStatus.textContent = recordLength > 0 ? "Ready to export" : "Idle";
+    }
+
+    function mergeBuffers(buffers, length) {
+      const result = new Float32Array(length);
+      let offset = 0;
+      buffers.forEach((buffer) => {
+        result.set(buffer, offset);
+        offset += buffer.length;
+      });
+      return result;
+    }
+
+    function encodeWav(left, right, sampleRate) {
+      const numChannels = 2;
+      const length = left.length;
+      const interleaved = new Float32Array(length * numChannels);
+      for (let i = 0; i < length; i++) {
+        interleaved[i * 2] = left[i];
+        interleaved[i * 2 + 1] = right[i];
+      }
+
+      const buffer = new ArrayBuffer(44 + interleaved.length * 2);
+      const view = new DataView(buffer);
+
+      function writeString(offset, string) {
+        for (let i = 0; i < string.length; i++) {
+          view.setUint8(offset + i, string.charCodeAt(i));
+        }
+      }
+
+      let offset = 0;
+      writeString(offset, "RIFF"); offset += 4;
+      view.setUint32(offset, 36 + interleaved.length * 2, true); offset += 4;
+      writeString(offset, "WAVE"); offset += 4;
+      writeString(offset, "fmt "); offset += 4;
+      view.setUint32(offset, 16, true); offset += 4;
+      view.setUint16(offset, 1, true); offset += 2;
+      view.setUint16(offset, numChannels, true); offset += 2;
+      view.setUint32(offset, sampleRate, true); offset += 4;
+      view.setUint32(offset, sampleRate * numChannels * 2, true); offset += 4;
+      view.setUint16(offset, numChannels * 2, true); offset += 2;
+      view.setUint16(offset, 16, true); offset += 2;
+      writeString(offset, "data"); offset += 4;
+      view.setUint32(offset, interleaved.length * 2, true); offset += 4;
+
+      for (let i = 0; i < interleaved.length; i++, offset += 2) {
+        const s = Math.max(-1, Math.min(1, interleaved[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      }
+      return buffer;
+    }
+
+    function exportWav() {
+      if (!audioContext || recordLength === 0) {
+        recordStatus.textContent = "No take";
+        return;
+      }
+      const left = mergeBuffers(recordBuffersL, recordLength);
+      const right = mergeBuffers(recordBuffersR, recordLength);
+      const wavBuffer = encodeWav(left, right, audioContext.sampleRate);
+      const blob = new Blob([wavBuffer], { type: "audio/wav" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      anchor.href = url;
+      anchor.download = `drm-mchn-${stamp}.wav`;
+      anchor.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      recordStatus.textContent = "Exported";
+    }
+
+    function updateTape() {
+      const amount = 1 + (Number(tape.value) / 100) * 1.4;
+      masterSaturation.curve = createSaturationCurve(amount);
+    }
+
+    async function loadSample(trackIndex, file) {
+      initAudio();
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = await audioContext.decodeAudioData(arrayBuffer);
+      trackState[trackIndex].buffer = buffer;
+      trackState[trackIndex].reverseBuffer = createReverseBuffer(buffer);
+      trackState[trackIndex].source = "sample";
+      const label = document.getElementById(`sourceVal-${trackIndex}`);
+      if (label) label.textContent = "Sample";
+    }
+
+    function createReverseBuffer(buffer) {
+      const reversed = audioContext.createBuffer(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
+      for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+        const data = buffer.getChannelData(channel);
+        const reversedData = reversed.getChannelData(channel);
+        for (let i = 0; i < data.length; i++) {
+          reversedData[i] = data[data.length - 1 - i];
+        }
+      }
+      return reversed;
+    }
+
+    async function initLiveInput() {
+      if (trackState.some((track) => track.liveNode)) return;
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      trackState.forEach((track) => {
+        track.liveNode = audioContext.createMediaStreamSource(stream);
+        track.liveGain = audioContext.createGain();
+        track.liveGain.gain.value = 0;
+        track.liveNode.connect(track.liveGain);
+      });
+    }
+
+    function resampleTrack(trackIndex) {
+      initAudio();
+      if (typeof MediaRecorder === "undefined") {
+        console.warn("MediaRecorder not supported in this browser/context.");
+        return;
+      }
+      const recordLength = (60 / Number(tempo.value)) * 4; // 1 bar
+      const dest = audioContext.createMediaStreamDestination();
+      const recorder = new MediaRecorder(dest.stream);
+      const chunks = [];
+      recorder.ondataavailable = (event) => chunks.push(event.data);
+      recorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        const arrayBuffer = await blob.arrayBuffer();
+        const buffer = await audioContext.decodeAudioData(arrayBuffer);
+        trackState[trackIndex].resampleBuffer = buffer;
+        trackState[trackIndex].reverseBuffer = createReverseBuffer(buffer);
+        trackState[trackIndex].source = "resample";
+        const label = document.getElementById(`sourceVal-${trackIndex}`);
+        if (label) label.textContent = "Resample";
+      };
+
+      const tap = audioContext.createGain();
+      tap.gain.value = 1;
+      tap.connect(dest);
+      trackState[trackIndex].trackOut.connect(tap);
+      try { recorder.start(); } catch (err) { console.error("Resample start error:", err); }
+      setTimeout(() => {
+        try { recorder.stop(); } catch (err) { console.error("Resample stop error:", err); }
+        try { trackState[trackIndex].trackOut.disconnect(tap); } catch (err) {}
+      }, recordLength * 1000);
+    }
+
+    function resampleMaster() {
+      initAudio();
+      if (typeof MediaRecorder === "undefined") {
+        console.warn("MediaRecorder not supported in this browser/context.");
+        return;
+      }
+      if (isResamplingMaster) return;
+      isResamplingMaster = true;
+      const resampleButton = document.getElementById("resampleMaster");
+      if (resampleButton) {
+        resampleButton.classList.add("active");
+        resampleButton.textContent = "Resampling...";
+      }
+      const recordLength = (60 / Number(tempo.value)) * 4;
+      const dest = audioContext.createMediaStreamDestination();
+      const recorder = new MediaRecorder(dest.stream);
+      const chunks = [];
+      recorder.ondataavailable = (event) => chunks.push(event.data);
+      recorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        const arrayBuffer = await blob.arrayBuffer();
+        const buffer = await audioContext.decodeAudioData(arrayBuffer);
+        trackState[0].resampleBuffer = buffer;
+        trackState[0].reverseBuffer = createReverseBuffer(buffer);
+        trackState[0].source = "resample";
+        const label = document.getElementById("sourceVal-0");
+        if (label) label.textContent = "Resample";
+      };
+      const tap = audioContext.createGain();
+      tap.gain.value = 1;
+      tap.connect(dest);
+      masterGain.connect(tap);
+      try { recorder.start(); } catch (err) { console.error("Master resample start error:", err); }
+      setTimeout(() => {
+        try { recorder.stop(); } catch (err) { console.error("Master resample stop error:", err); }
+        try { masterGain.disconnect(tap); } catch (err) {}
+        isResamplingMaster = false;
+        if (resampleButton) {
+          resampleButton.classList.remove("active");
+          resampleButton.textContent = "Resample Master";
+        }
+      }, recordLength * 1000);
+    }
+
     function schedule() {
-      while (nextNoteTime < audioContext.currentTime + 0.1) {
-        playStep(currentStep, nextNoteTime);
-        advanceStep();
+      try {
+        while (nextNoteTime < audioContext.currentTime + 0.1) {
+          playStep(currentStep, nextNoteTime);
+          advanceStep();
+        }
+      } catch (err) {
+        console.error("Scheduler error:", err);
       }
       schedulerId = requestAnimationFrame(schedule);
     }
 
     function advanceStep() {
-      const secondsPerBeat = 60.0 / tempo.value;
+      // Humanized swing drift: slow random walk so swing breathes.
+      swingDriftState += randomInRange(-0.6, 0.6);
+      swingDriftState = clamp(swingDriftState, -humanize.swingVar, humanize.swingVar);
+
+      // Pulse drift: slow BPM wobble around the base tempo.
+      pulseDriftState += randomInRange(-0.03, 0.03) * humanize.pulseDrift;
+      pulseDriftState = clamp(pulseDriftState, -humanize.pulseDrift, humanize.pulseDrift);
+
+      const bpm = Number(tempo.value) + pulseDriftState;
+      const secondsPerBeat = 60.0 / bpm;
       const stepDuration = secondsPerBeat / 4;
-      const swingOffset = (currentStep % 2 === 1 ? swing.value : 0) / 1000;
+      const swingOffset = (currentStep % 2 === 1 ? (Number(swing.value) + swingDriftState) : 0) / 1000;
+
       nextNoteTime += stepDuration + swingOffset;
       currentStep = (currentStep + 1) % steps;
     }
@@ -295,425 +1750,541 @@
       stepButtons.forEach((btn) => btn.classList.add("current"));
       setTimeout(() => stepButtons.forEach((btn) => btn.classList.remove("current")), 80);
 
+      const bpm = Number(tempo.value) + pulseDriftState;
+      const stepDuration = (60.0 / bpm) / 4;
+
       tracks.forEach((track, tIndex) => {
-        if (sequence[tIndex][stepIndex]) {
-          triggerSound(track.tone, time);
+        if (trackState[tIndex].mute) return;
+        const cycle = trackState[tIndex].cycle;
+        const localStep = stepIndex % cycle;
+        if (localStep === 0) trackLoopCount[tIndex] += 1;
+        const data = sequence[tIndex][localStep];
+        if (!data.on) return;
+        if (Math.random() * 100 > data.cond.chance) return;
+        if (data.cond.every > 1 && (trackLoopCount[tIndex] % data.cond.every !== 0)) return;
+
+        // Beatdown microtiming + humanize offset applied here.
+        const microTime = data.offset / 1000;
+        const humanTime = data.humanOffset / 1000;
+        const velocity = data.velocity * data.humanVel;
+        try {
+          triggerSound(track.tone, time + microTime + humanTime, tIndex, velocity, data, stepDuration);
+        } catch (err) {
+          console.error("Trigger error:", err);
+        }
+
+        // Stutter logic for spontaneous flams/drags.
+        if (Math.random() < trackState[tIndex].stutter) {
+          try {
+            triggerSound(track.tone, time + microTime + humanTime + 0.03, tIndex, velocity * 0.6, data, stepDuration);
+          } catch (err) {
+            console.error("Stutter error:", err);
+          }
         }
       });
     }
 
-    function triggerSound(type, time) {
-      const kit = document.getElementById("kit").value;
-      if (kit === "classic") {
-        classicKit(type, time);
-      } else if (kit === "glass") {
-        glassKit(type, time);
-      } else if (kit === "soft") {
-        softKit(type, time);
+    function triggerSound(type, time, tIndex, velocity, data, stepDuration) {
+      const state = trackState[tIndex];
+      const layerChance = Number(layer.value) / 100;
+
+      const chaosScale = getChaosScale();
+      const rawStyle = state.style || "lofi";
+      const style = rawStyle === "random" ? pickVariant(["lofi", "metallic", "dirty", "soft"]) : rawStyle;
+      const styleProfile = getStyleProfile(style);
+
+      const lockedPitch = getLockedValue(data, "pitch", state.pitch + data.humanDetune);
+      const lockedSlice = getLockedValue(data, "slice", state.slice);
+      const lockedStretch = getLockedValue(data, "stretch", state.stretch);
+      const lockedFilter = getLockedValue(data, "filter", state.filter);
+      const lockedRes = getLockedValue(data, "resonance", state.resonance);
+      const lockedDecay = getLockedValue(data, "decay", clamp(state.decay + data.humanMod * 0.4, 0.05, 1.2));
+      const lockedFx = getLockedValue(data, "fx", state.fx);
+      const reverse = data.locks.reverse === true;
+
+      const styledFilter = clamp(lockedFilter * (1 + styleProfile.filter * chaosScale), 300, 8000);
+      const styledRes = clamp(lockedRes * (1 + styleProfile.res * chaosScale), 0.1, 12);
+      const styledDecay = clamp(lockedDecay * (1 + styleProfile.decay * chaosScale), 0.05, 1.2);
+      const styledState = {
+        ...state,
+        dist: clamp(state.dist + styleProfile.dist * chaosScale, 0, 1),
+        crush: clamp(state.crush + styleProfile.crush * chaosScale, 0, 1),
+        delay: clamp(state.delay + styleProfile.delay * chaosScale, 0, 1),
+        reverb: clamp(state.reverb + styleProfile.reverb * chaosScale, 0, 1),
+        fx: clamp(state.fx + styleProfile.fx * chaosScale, 0, 1),
+        lfo: clamp(state.lfo + styleProfile.lfo * chaosScale, 0, 1)
+      };
+
+      const chain = state.fxNodes;
+      updateTrackFx(chain, styledFilter, styledRes, styledState, clamp(lockedFx + styleProfile.fx * chaosScale, 0, 1), time);
+
+      const envGain = audioContext.createGain();
+      const vel = clamp(velocity, 0.05, 1.5);
+      envGain.gain.setValueAtTime(0.0001, time);
+      envGain.gain.exponentialRampToValueAtTime(vel, time + 0.01);
+      envGain.gain.exponentialRampToValueAtTime(0.0001, time + styledDecay);
+
+      envGain.connect(chain.input);
+
+      if (state.source === "live" && state.liveGain) {
+        // Gate live input through step envelope.
+        state.liveGain.connect(envGain);
+        setTimeout(() => {
+          try { state.liveGain.disconnect(envGain); } catch (err) {}
+        }, Math.max(100, lockedDecay * 1000));
       } else {
-        industrialKit(type, time);
+        const buffer = state.source === "resample" ? state.resampleBuffer : state.buffer;
+        const reverseBuffer = state.source === "resample" ? state.reverseBuffer : state.reverseBuffer;
+        if (buffer) {
+          const targetBuffer = reverse ? reverseBuffer || buffer : buffer;
+          playSample(targetBuffer, time, envGain, lockedPitch, lockedSlice, lockedStretch, stepDuration);
+        } else {
+          // Fallback to beatdown synths if no buffer loaded.
+          const toneState = { pitch: lockedPitch, decay: styledDecay, lfo: styledState.lfo };
+          if (type === "kick") synthKickLoFi(time, toneState, envGain);
+          if (type === "snare") synthSnareLoFi(time, toneState, envGain);
+          if (type === "hat") synthHatLoFi(time, toneState, envGain);
+          if (type === "clap") synthClapLoFi(time, toneState, envGain);
+          if (type === "tom") synthTomLoFi(time, toneState, envGain);
+          if (type === "perc") synthPercLoFi(time, toneState, envGain);
+          if (type === "ride") synthRideLoFi(time, toneState, envGain);
+          if (type === "fx") synthFxLoFi(time, toneState, envGain);
+        }
+      }
+
+      // Random layered noise for dusty texture and field-recording vibe.
+      if (Math.random() < layerChance) {
+        synthDustLayer(time, chain.input, 0.2 * velocity);
       }
     }
+        function synthKickLoFi(time, state, output) {
+      const drive = createWaveshaper(1 + (state.lfo || 0) * 2);
+      const body = audioContext.createOscillator();
+      const bodyGain = audioContext.createGain();
+      const sub = audioContext.createOscillator();
+      const subGain = audioContext.createGain();
+      const lp = audioContext.createBiquadFilter();
+      lp.type = "lowpass";
+      lp.frequency.setValueAtTime(900, time);
 
-    function classicKit(type, time) {
-      switch (type) {
-        case "kick":
-          synthKick(time, 70, 40);
-          break;
-        case "snare":
-          synthSnare(time, 1800, 0.6);
-          break;
-        case "hat":
-          synthHat(time, 6000, 0.2, "highpass");
-          break;
-        case "clap":
-          synthClap(time, 0.4);
-          break;
-        case "tom":
-          synthTom(time, 220, 0.35);
-          break;
-        case "perc":
-          synthPerc(time, 450, 0.25);
-          break;
-        case "ride":
-          synthHat(time, 4000, 0.6, "bandpass");
-          break;
-        case "fx":
-          synthFx(time);
-          break;
-      }
+      const base = midiToFreq(36 + state.pitch);
+      const drop = midiToFreq(22 + state.pitch);
+      body.type = "sine";
+      body.frequency.setValueAtTime(base, time);
+      body.frequency.exponentialRampToValueAtTime(drop, time + 0.08 + state.decay * 0.06);
+      bodyGain.gain.setValueAtTime(1.05, time);
+      bodyGain.gain.exponentialRampToValueAtTime(0.0001, time + 0.45 + state.decay * 0.6);
+
+      sub.type = "sine";
+      sub.frequency.setValueAtTime(base * 0.5, time);
+      subGain.gain.setValueAtTime(0.6, time);
+      subGain.gain.exponentialRampToValueAtTime(0.0001, time + 0.5 + state.decay * 0.7);
+
+      body.connect(bodyGain).connect(drive).connect(lp).connect(output);
+      sub.connect(subGain).connect(output);
+
+      const click = audioContext.createBufferSource();
+      click.buffer = createNoiseBuffer();
+      const clickFilter = audioContext.createBiquadFilter();
+      clickFilter.type = "highpass";
+      clickFilter.frequency.value = 2400 + randomInRange(-200, 200);
+      const clickGain = audioContext.createGain();
+      clickGain.gain.setValueAtTime(0.28, time);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.045);
+      click.connect(clickFilter).connect(clickGain).connect(output);
+
+      body.start(time);
+      sub.start(time);
+      click.start(time);
+      body.stop(time + 1.0);
+      sub.stop(time + 1.0);
+      click.stop(time + 0.08);
     }
 
-    function glassKit(type, time) {
-      switch (type) {
-        case "kick":
-          synthKick(time, 90, 30, 1.2);
-          break;
-        case "snare":
-          synthSnare(time, 2400, 0.5);
-          break;
-        case "hat":
-          synthHat(time, 8000, 0.15, "highpass");
-          break;
-        case "clap":
-          synthClap(time, 0.25, 1600);
-          break;
-        case "tom":
-          synthTom(time, 320, 0.25);
-          break;
-        case "perc":
-          synthPerc(time, 700, 0.2);
-          break;
-        case "ride":
-          synthHat(time, 5200, 0.45, "bandpass");
-          break;
-        case "fx":
-          synthFx(time, 1.4);
-          break;
-      }
-    }
-
-    function softKit(type, time) {
-      switch (type) {
-        case "kick":
-          synthKick(time, 60, 55, 0.7);
-          break;
-        case "snare":
-          synthSnare(time, 1400, 0.45);
-          break;
-        case "hat":
-          synthHat(time, 5000, 0.18, "highpass");
-          break;
-        case "clap":
-          synthClap(time, 0.5, 1000);
-          break;
-        case "tom":
-          synthTom(time, 180, 0.4);
-          break;
-        case "perc":
-          synthPerc(time, 380, 0.28);
-          break;
-        case "ride":
-          synthHat(time, 3600, 0.5, "bandpass");
-          break;
-        case "fx":
-          synthFx(time, 0.8);
-          break;
-      }
-    }
-
-    function industrialKit(type, time) {
-      switch (type) {
-        case "kick":
-          synth808Kick(time, 58, 32, 1.1);
-          break;
-        case "snare":
-          synth808Snare(time, 2000, 0.65);
-          break;
-        case "hat":
-          synthMetalHat(time, 8200, 0.16);
-          break;
-        case "clap":
-          synthClapFlam(time, 0.38, 1400);
-          break;
-        case "tom":
-          synth808Tom(time, 240, 0.45);
-          break;
-        case "perc":
-          synthMetalPerc(time, 920, 0.22);
-          break;
-        case "ride":
-          synthIndustrialRide(time, 0.7, 4200);
-          break;
-        case "fx":
-          synthIndustrialFx(time, 1.2);
-          break;
-      }
-    }
-
-    function synthKick(time, startFreq, endFreq, length = 0.9) {
-      const osc = audioContext.createOscillator();
-      const gain = audioContext.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(startFreq, time);
-      osc.frequency.exponentialRampToValueAtTime(endFreq, time + 0.12);
-      gain.gain.setValueAtTime(0.9, time);
-      gain.gain.exponentialRampToValueAtTime(0.001, time + length);
-      osc.connect(gain).connect(masterGain);
-      osc.start(time);
-      osc.stop(time + length);
-    }
-
-    function synthSnare(time, noiseCutoff, decay) {
+    function synthSnareLoFi(time, state, output) {
       const noise = audioContext.createBufferSource();
       noise.buffer = createNoiseBuffer();
-      const noiseFilter = audioContext.createBiquadFilter();
-      noiseFilter.type = "highpass";
-      noiseFilter.frequency.value = noiseCutoff;
-
+      const band = audioContext.createBiquadFilter();
+      band.type = "bandpass";
+      band.frequency.value = 2000 + randomInRange(-200, 200);
+      band.Q.value = 0.8;
+      const snap = audioContext.createBiquadFilter();
+      snap.type = "highpass";
+      snap.frequency.value = 3200;
       const noiseGain = audioContext.createGain();
       noiseGain.gain.setValueAtTime(0.6, time);
-      noiseGain.gain.exponentialRampToValueAtTime(0.01, time + decay);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.28 + state.decay * 0.4);
 
-      const osc = audioContext.createOscillator();
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(220, time);
-      const oscGain = audioContext.createGain();
-      oscGain.gain.setValueAtTime(0.4, time);
-      oscGain.gain.exponentialRampToValueAtTime(0.01, time + decay * 0.8);
+      const tone1 = audioContext.createOscillator();
+      const tone2 = audioContext.createOscillator();
+      const toneGain = audioContext.createGain();
+      tone1.type = "triangle";
+      tone2.type = "sine";
+      const base = midiToFreq(48 + state.pitch);
+      tone1.frequency.setValueAtTime(base, time);
+      tone1.frequency.exponentialRampToValueAtTime(base * 0.9, time + 0.1);
+      tone2.frequency.setValueAtTime(base * 1.52, time);
+      tone2.frequency.exponentialRampToValueAtTime(base * 1.2, time + 0.08);
 
-      noise.connect(noiseFilter).connect(noiseGain).connect(masterGain);
-      osc.connect(oscGain).connect(masterGain);
+      toneGain.gain.setValueAtTime(0.38, time);
+      toneGain.gain.exponentialRampToValueAtTime(0.001, time + 0.25 + state.decay * 0.3);
+
+      const grit = createWaveshaper(0.8 + (state.lfo || 0) * 1.6);
+      noise.connect(band).connect(grit).connect(noiseGain).connect(output);
+      noise.connect(snap).connect(noiseGain).connect(output);
+      tone1.connect(toneGain);
+      tone2.connect(toneGain);
+      toneGain.connect(output);
+
       noise.start(time);
-      noise.stop(time + decay);
-      osc.start(time);
-      osc.stop(time + decay);
+      tone1.start(time);
+      tone2.start(time);
+      noise.stop(time + 0.7);
+      tone1.stop(time + 0.7);
+      tone2.stop(time + 0.7);
     }
 
-    function synthHat(time, cutoff, decay, filterType) {
+    function synthHatLoFi(time, state, output) {
+      const ratios = [1, 1.34, 1.5, 1.8, 2.45, 2.7];
+      const base = 400 + randomInRange(-40, 40);
+      const mix = audioContext.createGain();
+      mix.gain.value = 0.6;
+
+      ratios.forEach((ratio) => {
+        const osc = audioContext.createOscillator();
+        osc.type = "square";
+        osc.frequency.setValueAtTime(base * ratio, time);
+        osc.connect(mix);
+        osc.start(time);
+        osc.stop(time + 0.35);
+      });
+
       const noise = audioContext.createBufferSource();
       noise.buffer = createNoiseBuffer();
-      const filter = audioContext.createBiquadFilter();
-      filter.type = filterType;
-      filter.frequency.value = cutoff;
+      const hp = audioContext.createBiquadFilter();
+      hp.type = "highpass";
+      hp.frequency.value = 5200;
+      const bp = audioContext.createBiquadFilter();
+      bp.type = "bandpass";
+      bp.frequency.value = 7200;
+      bp.Q.value = 0.7;
 
-      const gain = audioContext.createGain();
-      gain.gain.setValueAtTime(0.3, time);
-      gain.gain.exponentialRampToValueAtTime(0.01, time + decay);
-      noise.connect(filter).connect(gain).connect(masterGain);
+      const env = audioContext.createGain();
+      env.gain.setValueAtTime(0.35, time);
+      env.gain.exponentialRampToValueAtTime(0.001, time + 0.12 + state.decay * 0.2);
+
+      mix.connect(hp).connect(bp).connect(env).connect(output);
+      noise.connect(hp);
       noise.start(time);
-      noise.stop(time + decay);
+      noise.stop(time + 0.4);
     }
 
-    function synthClap(time, decay, cutoff = 1200) {
-      const noise = audioContext.createBufferSource();
-      noise.buffer = createNoiseBuffer();
-      const filter = audioContext.createBiquadFilter();
-      filter.type = "bandpass";
-      filter.frequency.value = cutoff;
-      const gain = audioContext.createGain();
-      gain.gain.setValueAtTime(0.5, time);
-      gain.gain.exponentialRampToValueAtTime(0.01, time + decay);
-      noise.connect(filter).connect(gain).connect(masterGain);
-      noise.start(time);
-      noise.stop(time + decay);
+    function synthClapLoFi(time, state, output) {
+      const slap = audioContext.createDelay(0.05);
+      slap.delayTime.setValueAtTime(0.018, time);
+      const feedback = audioContext.createGain();
+      feedback.gain.value = 0.22;
+      slap.connect(feedback).connect(slap);
+      const slapGain = audioContext.createGain();
+      slapGain.gain.setValueAtTime(0.2, time);
+      slap.connect(slapGain).connect(output);
+
+      const bursts = [0, 0.015, 0.03, 0.045];
+      bursts.forEach((offset, index) => {
+        const noise = audioContext.createBufferSource();
+        noise.buffer = createNoiseBuffer();
+        const filter = audioContext.createBiquadFilter();
+        filter.type = "bandpass";
+        filter.frequency.value = 1200 + index * 150;
+        filter.Q.value = 0.7;
+        const gain = audioContext.createGain();
+        const level = 0.5 - index * 0.08;
+        gain.gain.setValueAtTime(level, time + offset);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + offset + 0.2 + state.decay * 0.2);
+
+        noise.connect(filter).connect(gain).connect(output);
+        noise.connect(filter).connect(slap);
+        noise.start(time + offset);
+        noise.stop(time + offset + 0.4);
+      });
     }
 
-    function synthTom(time, frequency, decay) {
+    function synthTomLoFi(time, state, output) {
       const osc = audioContext.createOscillator();
+      const osc2 = audioContext.createOscillator();
       const gain = audioContext.createGain();
       osc.type = "sine";
-      osc.frequency.setValueAtTime(frequency, time);
-      gain.gain.setValueAtTime(0.6, time);
-      gain.gain.exponentialRampToValueAtTime(0.01, time + decay);
-      osc.connect(gain).connect(masterGain);
+      osc2.type = "triangle";
+
+      const base = midiToFreq(45 + state.pitch);
+      osc.frequency.setValueAtTime(base, time);
+      osc.frequency.exponentialRampToValueAtTime(base * 0.75, time + 0.12);
+      osc2.frequency.setValueAtTime(base * 1.5, time);
+      osc2.frequency.exponentialRampToValueAtTime(base * 1.15, time + 0.08);
+
+      gain.gain.setValueAtTime(0.55, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.35 + state.decay * 0.45);
+
+      const bodyFilter = audioContext.createBiquadFilter();
+      bodyFilter.type = "lowpass";
+      bodyFilter.frequency.value = 900;
+
+      osc.connect(gain).connect(bodyFilter).connect(output);
+      osc2.connect(gain);
+
+      const click = audioContext.createBufferSource();
+      click.buffer = createNoiseBuffer();
+      const clickFilter = audioContext.createBiquadFilter();
+      clickFilter.type = "highpass";
+      clickFilter.frequency.value = 1800;
+      const clickGain = audioContext.createGain();
+      clickGain.gain.setValueAtTime(0.18, time);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.06);
+      click.connect(clickFilter).connect(clickGain).connect(output);
+
       osc.start(time);
-      osc.stop(time + decay);
+      osc2.start(time);
+      click.start(time);
+      osc.stop(time + 0.9);
+      osc2.stop(time + 0.9);
+      click.stop(time + 0.1);
     }
 
-    function synthPerc(time, frequency, decay) {
-      const osc = audioContext.createOscillator();
-      const gain = audioContext.createGain();
-      osc.type = "square";
-      osc.frequency.setValueAtTime(frequency, time);
-      gain.gain.setValueAtTime(0.4, time);
-      gain.gain.exponentialRampToValueAtTime(0.01, time + decay);
-      osc.connect(gain).connect(masterGain);
-      osc.start(time);
-      osc.stop(time + decay);
-    }
-
-    function synthRide(time, decay) {
-      synthHat(time, 4200, decay, "bandpass");
-    }
-
-    function synthFx(time, length = 1) {
-      const osc = audioContext.createOscillator();
-      const gain = audioContext.createGain();
-      osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(160, time);
-      osc.frequency.exponentialRampToValueAtTime(60, time + length);
-      gain.gain.setValueAtTime(0.5, time);
-      gain.gain.exponentialRampToValueAtTime(0.01, time + length);
-      osc.connect(gain).connect(masterGain);
-      osc.start(time);
-      osc.stop(time + length);
-    }
-
-    function synth808Kick(time, startFreq, endFreq, length) {
-      const osc = audioContext.createOscillator();
-      const gain = audioContext.createGain();
-      const drive = createWaveshaper(1.1);
-
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(startFreq, time);
-      osc.frequency.exponentialRampToValueAtTime(endFreq, time + 0.16);
-
-      gain.gain.setValueAtTime(0.95, time);
-      gain.gain.exponentialRampToValueAtTime(0.001, time + length);
-
-      osc.connect(gain).connect(drive).connect(masterGain);
-      osc.start(time);
-      osc.stop(time + length);
-    }
-
-    function synth808Snare(time, noiseCutoff, decay) {
-      const noise = audioContext.createBufferSource();
-      noise.buffer = createNoiseBuffer();
-      const noiseFilter = audioContext.createBiquadFilter();
-      noiseFilter.type = "bandpass";
-      noiseFilter.frequency.value = noiseCutoff;
-      noiseFilter.Q.value = 0.7;
-
-      const noiseGain = audioContext.createGain();
-      noiseGain.gain.setValueAtTime(0.55, time);
-      noiseGain.gain.exponentialRampToValueAtTime(0.01, time + decay);
-
-      const osc = audioContext.createOscillator();
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(200, time);
-      const oscGain = audioContext.createGain();
-      oscGain.gain.setValueAtTime(0.35, time);
-      oscGain.gain.exponentialRampToValueAtTime(0.01, time + decay * 0.9);
-
-      noise.connect(noiseFilter).connect(noiseGain).connect(masterGain);
-      osc.connect(oscGain).connect(masterGain);
-      noise.start(time);
-      noise.stop(time + decay);
-      osc.start(time);
-      osc.stop(time + decay);
-    }
-
-    function synthMetalHat(time, cutoff, decay) {
-      const noise = audioContext.createBufferSource();
-      noise.buffer = createNoiseBuffer();
-      const filter = audioContext.createBiquadFilter();
-      filter.type = "highpass";
-      filter.frequency.value = cutoff;
-
-      const gain = audioContext.createGain();
-      gain.gain.setValueAtTime(0.26, time);
-      gain.gain.exponentialRampToValueAtTime(0.01, time + decay);
-      noise.connect(filter).connect(gain).connect(masterGain);
-      noise.start(time);
-      noise.stop(time + decay);
-    }
-
-    function synthClapFlam(time, decay, cutoff) {
-      const noise = audioContext.createBufferSource();
-      noise.buffer = createNoiseBuffer();
-      const filter = audioContext.createBiquadFilter();
-      filter.type = "bandpass";
-      filter.frequency.value = cutoff;
-
-      const gain = audioContext.createGain();
-      gain.gain.setValueAtTime(0.5, time);
-      gain.gain.exponentialRampToValueAtTime(0.01, time + decay);
-
-      noise.connect(filter).connect(gain).connect(masterGain);
-      noise.start(time);
-      noise.stop(time + decay);
-
-      const noise2 = audioContext.createBufferSource();
-      noise2.buffer = createNoiseBuffer();
-      const gain2 = audioContext.createGain();
-      gain2.gain.setValueAtTime(0.35, time + 0.02);
-      gain2.gain.exponentialRampToValueAtTime(0.01, time + 0.02 + decay * 0.8);
-      noise2.connect(filter).connect(gain2).connect(masterGain);
-      noise2.start(time + 0.02);
-      noise2.stop(time + 0.02 + decay * 0.8);
-    }
-
-    function synth808Tom(time, frequency, decay) {
-      const osc = audioContext.createOscillator();
-      const gain = audioContext.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(frequency, time);
-      osc.frequency.exponentialRampToValueAtTime(frequency * 0.75, time + 0.12);
-      gain.gain.setValueAtTime(0.6, time);
-      gain.gain.exponentialRampToValueAtTime(0.01, time + decay);
-      osc.connect(gain).connect(masterGain);
-      osc.start(time);
-      osc.stop(time + decay);
-    }
-
-    function synthMetalPerc(time, frequency, decay) {
+    function synthPercLoFi(time, state, output) {
       const carrier = audioContext.createOscillator();
-      const mod = audioContext.createOscillator();
+      const modOsc = audioContext.createOscillator();
       const modGain = audioContext.createGain();
       const gain = audioContext.createGain();
 
+      const base = midiToFreq(60 + state.pitch);
       carrier.type = "sine";
-      mod.type = "square";
-      carrier.frequency.setValueAtTime(frequency, time);
-      mod.frequency.setValueAtTime(frequency * 1.7, time);
-      modGain.gain.setValueAtTime(frequency * 0.5, time);
-      modGain.connect(carrier.frequency);
+      carrier.frequency.setValueAtTime(base, time);
 
-      gain.gain.setValueAtTime(0.35, time);
-      gain.gain.exponentialRampToValueAtTime(0.01, time + decay);
+      modOsc.type = "triangle";
+      modOsc.frequency.setValueAtTime(base * 2.6, time);
+      modGain.gain.setValueAtTime(140 + (state.lfo || 0) * 200, time);
+      modOsc.connect(modGain).connect(carrier.frequency);
 
-      mod.connect(modGain);
-      carrier.connect(gain).connect(masterGain);
+      const band = audioContext.createBiquadFilter();
+      band.type = "bandpass";
+      band.frequency.value = 1800;
+      band.Q.value = 0.9;
+
+      gain.gain.setValueAtTime(0.4, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.18 + state.decay * 0.2);
+
+      carrier.connect(band).connect(gain).connect(output);
+
       carrier.start(time);
-      mod.start(time);
-      carrier.stop(time + decay);
-      mod.stop(time + decay);
+      modOsc.start(time);
+      carrier.stop(time + 0.6);
+      modOsc.stop(time + 0.6);
     }
 
-    function synthIndustrialRide(time, decay, cutoff) {
+    function synthRideLoFi(time, state, output) {
+      const ratios = [1, 1.41, 1.72, 2.08, 2.5, 2.99];
+      const base = 520 + randomInRange(-60, 60);
+      const mix = audioContext.createGain();
+      mix.gain.value = 0.5;
+
+      ratios.forEach((ratio) => {
+        const osc = audioContext.createOscillator();
+        osc.type = "square";
+        osc.frequency.setValueAtTime(base * ratio, time);
+        osc.connect(mix);
+        osc.start(time);
+        osc.stop(time + 1.2);
+      });
+
+      const noise = audioContext.createBufferSource();
+      noise.buffer = createNoiseBuffer();
+      const hp = audioContext.createBiquadFilter();
+      hp.type = "highpass";
+      hp.frequency.value = 4200;
+      const bp = audioContext.createBiquadFilter();
+      bp.type = "bandpass";
+      bp.frequency.value = 6400;
+      bp.Q.value = 0.6;
+
+      const env = audioContext.createGain();
+      env.gain.setValueAtTime(0.3, time);
+      env.gain.exponentialRampToValueAtTime(0.001, time + 0.7 + state.decay * 0.6);
+
+      mix.connect(hp).connect(bp).connect(env).connect(output);
+      noise.connect(hp);
+      noise.start(time);
+      noise.stop(time + 1.3);
+    }
+
+    function synthFxLoFi(time, state, output) {
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      const filter = audioContext.createBiquadFilter();
+      filter.type = "bandpass";
+
+      const startFreq = midiToFreq(38 + state.pitch);
+      const endFreq = midiToFreq(26 + state.pitch);
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(startFreq, time);
+      osc.frequency.exponentialRampToValueAtTime(endFreq, time + 0.6);
+
+      filter.frequency.setValueAtTime(500, time);
+      filter.frequency.exponentialRampToValueAtTime(4200, time + 0.4);
+      filter.Q.value = 0.7;
+
+      const wobble = createLfo((state.lfo || 0.2) * 0.8, time);
+      wobble.connect(filter.frequency);
+
+      gain.gain.setValueAtTime(0.5, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.8 + state.decay * 0.4);
+
+      osc.connect(filter).connect(gain).connect(output);
+      osc.start(time);
+      osc.stop(time + 1.2);
+    }
+
+function synthDustLayer(time, output, gainAmount) {
       const noise = audioContext.createBufferSource();
       noise.buffer = createNoiseBuffer();
       const filter = audioContext.createBiquadFilter();
-      filter.type = "bandpass";
-      filter.frequency.value = cutoff;
-      filter.Q.value = 0.9;
+      filter.type = "lowpass";
+      filter.frequency.value = 2200;
       const gain = audioContext.createGain();
-      gain.gain.setValueAtTime(0.3, time);
-      gain.gain.exponentialRampToValueAtTime(0.01, time + decay);
-      noise.connect(filter).connect(gain).connect(masterGain);
+      gain.gain.setValueAtTime(gainAmount, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+      noise.connect(filter).connect(gain).connect(output);
       noise.start(time);
-      noise.stop(time + decay);
+      noise.stop(time + 0.3);
     }
 
-    function synthIndustrialFx(time, length) {
-      const noise = audioContext.createBufferSource();
-      noise.buffer = createNoiseBuffer();
-      const noiseFilter = audioContext.createBiquadFilter();
-      noiseFilter.type = "lowpass";
-      noiseFilter.frequency.setValueAtTime(900, time);
-
-      const noiseGain = audioContext.createGain();
-      noiseGain.gain.setValueAtTime(0.55, time);
-      noiseGain.gain.exponentialRampToValueAtTime(0.01, time + length);
-
-      const osc = audioContext.createOscillator();
-      const oscGain = audioContext.createGain();
-      const drive = createWaveshaper(1.3);
-      osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(120, time);
-      osc.frequency.exponentialRampToValueAtTime(50, time + length);
-      oscGain.gain.setValueAtTime(0.4, time);
-      oscGain.gain.exponentialRampToValueAtTime(0.01, time + length);
-
-      noise.connect(noiseFilter).connect(noiseGain).connect(drive).connect(masterGain);
-      osc.connect(oscGain).connect(drive);
-      noise.start(time);
-      noise.stop(time + length);
-      osc.start(time);
-      osc.stop(time + length);
+    function getLockedValue(step, key, fallback) {
+      return step.locks[key] !== null ? step.locks[key] : fallback;
     }
 
-    function createWaveshaper(amount) {
+    function playSample(buffer, time, destination, pitch, slice, stretch, stepDuration) {
+      if (stretch !== 1) {
+        playGranular(buffer, time, destination, pitch, slice, stretch, stepDuration);
+        return;
+      }
+      const source = audioContext.createBufferSource();
+      source.buffer = buffer;
+      source.playbackRate.value = Math.pow(2, pitch / 12);
+      const sliceDur = buffer.duration / 16;
+      const offset = clamp(slice, 0, 15) * sliceDur;
+      source.connect(destination);
+      source.start(time, offset, Math.min(sliceDur, stepDuration));
+      source.stop(time + Math.min(sliceDur, stepDuration) + 0.05);
+    }
+
+    function playGranular(buffer, time, destination, pitch, slice, stretch, stepDuration) {
+      const sliceDur = buffer.duration / 16;
+      const sliceStart = clamp(slice, 0, 15) * sliceDur;
+      const grainDur = Math.min(0.12, sliceDur * 0.8);
+      const interval = grainDur * 0.5;
+      const rate = Math.pow(2, pitch / 12);
+      const grains = Math.max(3, Math.floor(stepDuration / interval));
+      for (let i = 0; i < grains; i++) {
+        const source = audioContext.createBufferSource();
+        source.buffer = buffer;
+        source.playbackRate.value = rate;
+        const offset = sliceStart + (i * interval * rate) / stretch;
+        source.connect(destination);
+        source.start(time + i * interval, clamp(offset, 0, buffer.duration - grainDur), grainDur);
+        source.stop(time + i * interval + grainDur + 0.02);
+      }
+    }
+
+    function createTrackFxNodes() {
+      const input = audioContext.createGain();
+      const filter = audioContext.createBiquadFilter();
+      filter.type = "lowpass";
+
+      const distortion = audioContext.createWaveShaper();
+      distortion.oversample = "2x";
+
+      const crusher = createBitCrusher(0);
+      const delay = audioContext.createDelay(1.0);
+      const feedback = audioContext.createGain();
+      delay.connect(feedback).connect(delay);
+
+      const convolver = audioContext.createConvolver();
+      convolver.buffer = reverbImpulse;
+
+      const dry = audioContext.createGain();
+      const wet = audioContext.createGain();
+
+      const output = audioContext.createGain();
+      input.connect(dry);
+      input.connect(filter).connect(distortion).connect(crusher).connect(delay).connect(convolver).connect(wet);
+      dry.connect(output);
+      wet.connect(output);
+
+      return { input, output, filter, distortion, crusher, delay, feedback, convolver, dry, wet };
+    }
+
+    function updateTrackFx(chain, filterCutoff, resonance, state, fxMix, time) {
+      chain.filter.frequency.setValueAtTime(filterCutoff, time);
+      chain.filter.Q.value = clamp(resonance, 0.1, 12);
+      chain.distortion.curve = createDistortionCurve(1 + state.dist * 4);
+      chain.crusher.disconnect();
+      chain.crusher = createBitCrusher(state.crush);
+      chain.filter.disconnect();
+      chain.filter.connect(chain.distortion).connect(chain.crusher).connect(chain.delay);
+      chain.delay.delayTime.value = clamp(0.18 + state.delay * 0.25, 0.01, 0.6);
+      chain.feedback.gain.value = clamp(0.2 + state.delay * 0.5, 0, 0.9);
+      chain.convolver.buffer = reverbImpulse;
+      chain.dry.gain.value = 1 - fxMix;
+      chain.wet.gain.value = fxMix;
+    }
+
+    function createReverbImpulse(duration, decay) {
+      const length = audioContext.sampleRate * duration;
+      const impulse = audioContext.createBuffer(2, length, audioContext.sampleRate);
+      for (let c = 0; c < 2; c++) {
+        const channel = impulse.getChannelData(c);
+        for (let i = 0; i < length; i++) {
+          channel[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+        }
+      }
+      return impulse;
+    }
+
+    function createDistortionCurve(amount) {
       const curve = new Float32Array(256);
       for (let i = 0; i < 256; i++) {
         const x = (i / 255) * 2 - 1;
-        curve[i] = Math.tanh(x * amount * 2);
+        curve[i] = Math.tanh(x * amount);
       }
-      const shaper = audioContext.createWaveShaper();
-      shaper.curve = curve;
-      shaper.oversample = "2x";
-      return shaper;
+      return curve;
+    }
+
+    function createBitCrusher(amount) {
+      if (amount <= 0.01) {
+        return audioContext.createGain();
+      }
+      const node = audioContext.createScriptProcessor(512, 1, 1);
+      const bits = Math.max(2, Math.floor(16 - amount * 12));
+      const step = Math.pow(0.5, bits);
+      node.onaudioprocess = (event) => {
+        const input = event.inputBuffer.getChannelData(0);
+        const output = event.outputBuffer.getChannelData(0);
+        for (let i = 0; i < input.length; i++) {
+          output[i] = Math.round(input[i] / step) * step;
+        }
+      };
+      return node;
+    }
+
+    function createLfo(amount, time) {
+      const lfo = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      lfo.type = "sine";
+      lfo.frequency.setValueAtTime(2.1, time);
+      gain.gain.setValueAtTime(amount * 0.3, time);
+      lfo.connect(gain);
+      lfo.start(time);
+      lfo.stop(time + 0.6);
+      return gain;
     }
 
     function createNoiseBuffer() {
@@ -724,6 +2295,26 @@
         data[i] = Math.random() * 2 - 1;
       }
       return buffer;
+    }
+
+    function createWaveshaper(amount) {
+      const shaper = audioContext.createWaveShaper();
+      shaper.curve = createSaturationCurve(amount);
+      shaper.oversample = "2x";
+      return shaper;
+    }
+
+    function createSaturationCurve(amount) {
+      const curve = new Float32Array(256);
+      for (let i = 0; i < 256; i++) {
+        const x = (i / 255) * 2 - 1;
+        curve[i] = Math.tanh(x * amount * 2);
+      }
+      return curve;
+    }
+
+    function midiToFreq(note) {
+      return 440 * Math.pow(2, (note - 69) / 12);
     }
 
     function start() {
@@ -760,32 +2351,209 @@
     });
 
     document.getElementById("clear").addEventListener("click", () => {
-      sequence.forEach((row) => row.fill(false));
-      document.querySelectorAll(".step").forEach((step) => step.classList.remove("on"));
+      resetSequence();
     });
 
-    document.getElementById("random").addEventListener("click", () => {
-      sequence.forEach((row, rowIndex) => {
-        row.forEach((_, stepIndex) => {
-          const active = Math.random() > 0.75;
-          row[stepIndex] = active;
-          const el = document.querySelector(`.step[data-track="${rowIndex}"][data-step="${stepIndex}"]`);
-          el.classList.toggle("on", active);
-        });
-      });
+    document.getElementById("reroll").addEventListener("click", () => {
+      rollHumanizeForAllSteps();
+    });
+
+    document.getElementById("resampleMaster").addEventListener("click", () => {
+      resampleMaster();
+    });
+
+    document.getElementById("sketchA").addEventListener("click", () => sketchPocket());
+    document.getElementById("sketchB").addEventListener("click", () => sketchLurch());
+    document.getElementById("sketchC").addEventListener("click", () => sketchShuffle());
+    document.getElementById("sketchHouse").addEventListener("click", () => sketchHouse());
+    document.getElementById("sketchTechno").addEventListener("click", () => sketchTechno());
+    document.getElementById("sketchHipHop").addEventListener("click", () => sketchHipHop());
+
+    recordButton.addEventListener("click", () => {
+      if (!isRecording) startRecording();
+      else stopRecording();
+    });
+    exportWavButton.addEventListener("click", () => {
+      if (isRecording) stopRecording();
+      exportWav();
     });
 
     tempo.addEventListener("input", () => {
       tempoValue.textContent = tempo.value;
+      tempoNumber.value = tempo.value;
+    });
+
+    tempoNumber.addEventListener("input", () => {
+      const value = clamp(Number(tempoNumber.value), 88, 140);
+      tempo.value = value;
+      tempoValue.textContent = value;
     });
 
     swing.addEventListener("input", () => {
       swingValue.textContent = swing.value;
     });
 
-    master.addEventListener("input", () => {
-      masterValue.textContent = master.value;
-      if (masterGain) masterGain.gain.value = master.value / 100;
+    tape.addEventListener("input", () => {
+      tapeValue.textContent = tape.value;
+      if (masterSaturation) updateTape();
+    });
+
+    layer.addEventListener("input", () => {
+      layerValue.textContent = layer.value;
+    });
+
+    groovePreset.addEventListener("change", () => {
+      applyHumanizePreset(groovePreset.value);
+    });
+
+    looseness.addEventListener("input", () => {
+      humanize.looseness = Number(looseness.value);
+      loosenessValue.textContent = looseness.value;
+    });
+
+    velVar.addEventListener("input", () => {
+      humanize.velocityVar = Number(velVar.value) / 100;
+      velVarValue.textContent = `${velVar.value}%`;
+    });
+
+    swingVar.addEventListener("input", () => {
+      humanize.swingVar = Number(swingVar.value);
+      swingVarValue.textContent = swingVar.value;
+    });
+
+    pulse.addEventListener("input", () => {
+      humanize.pulseDrift = Number(pulse.value);
+      pulseValue.textContent = Number(pulse.value).toFixed(1);
+    });
+
+    detune.addEventListener("input", () => {
+      humanize.detune = Number(detune.value);
+      detuneValue.textContent = Number(detune.value).toFixed(1);
+    });
+
+    mod.addEventListener("input", () => {
+      humanize.mod = Number(mod.value) / 100;
+      modValue.textContent = `${mod.value}%`;
+    });
+
+    if (chaos) {
+      chaos.addEventListener("input", () => {
+        if (chaosValue) chaosValue.textContent = chaos.value;
+      });
+    }
+
+    function setXYFromValues() {
+      const x = mapRange(Number(swing.value), 0, 70, 0, 100);
+      const y = mapRange(humanize.looseness, 0, 40, 0, 100);
+      xyCrosshair.style.setProperty("--x", `${x}%`);
+      xyCrosshair.style.setProperty("--y", `${100 - y}%`);
+      xyHandle.style.setProperty("--x", `${x}%`);
+      xyHandle.style.setProperty("--y", `${100 - y}%`);
+    }
+
+    function updateFromXY(clientX, clientY) {
+      const rect = xyPad.getBoundingClientRect();
+      const x = clamp((clientX - rect.left) / rect.width, 0, 1);
+      const y = clamp((clientY - rect.top) / rect.height, 0, 1);
+      const swingValueRaw = Math.round(mapRange(x, 0, 1, 0, 70));
+      const loosenessRaw = Math.round(mapRange(1 - y, 0, 1, 0, 40));
+      swing.value = swingValueRaw;
+      swingValue.textContent = swingValueRaw;
+      humanize.looseness = loosenessRaw;
+      looseness.value = loosenessRaw;
+      loosenessValue.textContent = loosenessRaw;
+      setXYFromValues();
+    }
+
+    xyPad.addEventListener("pointerdown", (event) => {
+      xyPad.setPointerCapture(event.pointerId);
+      updateFromXY(event.clientX, event.clientY);
+    });
+    xyPad.addEventListener("pointermove", (event) => {
+      if (event.buttons) updateFromXY(event.clientX, event.clientY);
+    });
+
+    stepChance.addEventListener("input", () => {
+      if (!selectedStep) return;
+      const step = sequence[selectedStep.trackIndex][selectedStep.stepIndex];
+      step.cond.chance = Number(stepChance.value);
+      chanceValue.textContent = `${stepChance.value}%`;
+    });
+
+    stepEvery.addEventListener("input", () => {
+      if (!selectedStep) return;
+      const step = sequence[selectedStep.trackIndex][selectedStep.stepIndex];
+      step.cond.every = Number(stepEvery.value);
+      everyValue.textContent = stepEvery.value;
+    });
+
+    lockPitch.addEventListener("input", () => {
+      lockPitchValue.textContent = lockPitch.value;
+      updateSelectedStepLock("pitch", Number(lockPitch.value), lockPitchEnable.checked);
+    });
+    lockPitchEnable.addEventListener("change", () => {
+      updateSelectedStepLock("pitch", Number(lockPitch.value), lockPitchEnable.checked);
+    });
+
+    lockReverse.addEventListener("change", () => {
+      if (!selectedStep) return;
+      updateSelectedStepLock("reverse", lockReverse.checked, true);
+      lockReverseValue.textContent = lockReverse.checked ? "On" : "Off";
+    });
+
+    lockSlice.addEventListener("input", () => {
+      lockSliceValue.textContent = lockSlice.value;
+      updateSelectedStepLock("slice", Number(lockSlice.value), lockSliceEnable.checked);
+    });
+    lockSliceEnable.addEventListener("change", () => {
+      updateSelectedStepLock("slice", Number(lockSlice.value), lockSliceEnable.checked);
+    });
+
+    lockStretch.addEventListener("input", () => {
+      lockStretchValue.textContent = Number(lockStretch.value).toFixed(1);
+      updateSelectedStepLock("stretch", Number(lockStretch.value), lockStretchEnable.checked);
+    });
+    lockStretchEnable.addEventListener("change", () => {
+      updateSelectedStepLock("stretch", Number(lockStretch.value), lockStretchEnable.checked);
+    });
+
+    lockFilter.addEventListener("input", () => {
+      lockFilterValue.textContent = lockFilter.value;
+      updateSelectedStepLock("filter", Number(lockFilter.value), lockFilterEnable.checked);
+    });
+    lockFilterEnable.addEventListener("change", () => {
+      updateSelectedStepLock("filter", Number(lockFilter.value), lockFilterEnable.checked);
+    });
+
+    lockRes.addEventListener("input", () => {
+      lockResValue.textContent = Number(lockRes.value).toFixed(1);
+      updateSelectedStepLock("resonance", Number(lockRes.value), lockResEnable.checked);
+    });
+    lockResEnable.addEventListener("change", () => {
+      updateSelectedStepLock("resonance", Number(lockRes.value), lockResEnable.checked);
+    });
+
+    lockDecay.addEventListener("input", () => {
+      lockDecayValue.textContent = Number(lockDecay.value).toFixed(2);
+      updateSelectedStepLock("decay", Number(lockDecay.value), lockDecayEnable.checked);
+    });
+    lockDecayEnable.addEventListener("change", () => {
+      updateSelectedStepLock("decay", Number(lockDecay.value), lockDecayEnable.checked);
+    });
+
+    lockFx.addEventListener("input", () => {
+      lockFxValue.textContent = `${lockFx.value}%`;
+      updateSelectedStepLock("fx", Number(lockFx.value) / 100, lockFxEnable.checked);
+    });
+    lockFxEnable.addEventListener("change", () => {
+      updateSelectedStepLock("fx", Number(lockFx.value) / 100, lockFxEnable.checked);
+    });
+
+    clearLocks.addEventListener("click", () => {
+      if (!selectedStep) return;
+      const step = sequence[selectedStep.trackIndex][selectedStep.stepIndex];
+      step.locks = { pitch: null, reverse: null, stretch: null, slice: null, filter: null, resonance: null, decay: null, fx: null };
+      selectStep(selectedStep.trackIndex, selectedStep.stepIndex);
     });
 
     document.addEventListener("keydown", (event) => {
@@ -794,7 +2562,24 @@
         if (!isPlaying) start();
         else stop();
       }
+      if (event.key === "r" || event.key === "R") {
+        rollHumanizeForAllSteps();
+      }
+      if (event.key === "1") sketchPocket();
+      if (event.key === "2") sketchLurch();
+      if (event.key === "3") sketchShuffle();
+      if (event.key === "4") sketchHouse();
+      if (event.key === "5") sketchTechno();
+      if (event.key === "6") sketchHipHop();
     });
+
+    // Initialize humanize UI with default preset.
+    applyHumanizePreset("loose");
+    setXYFromValues();
+    if (chaos && chaosValue) chaosValue.textContent = chaos.value;
+    tracks.forEach((_, i) => updateKnobVisual(i));
   </script>
 </body>
 </html>
+
+
