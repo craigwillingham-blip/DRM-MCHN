@@ -620,7 +620,7 @@
 
     .sequencer-wrap {
       display: grid;
-      grid-template-columns: 170px minmax(0, 1fr);
+      grid-template-columns: 236px minmax(0, 1fr);
       gap: 12px;
       min-height: 0;
       align-items: start;
@@ -632,8 +632,8 @@
     }
 
     .track-strip {
-      width: 170px;
-      min-width: 170px;
+      width: 236px;
+      min-width: 236px;
       display: grid;
       gap: 10px;
     }
@@ -660,8 +660,8 @@
     }
 
     .strip-row {
-      grid-template-columns: minmax(54px, 1fr) 50px 50px 50px 50px;
-      gap: 8px;
+      grid-template-columns: minmax(42px, 1fr) 40px 40px 40px 40px;
+      gap: 4px;
     }
     .strip-name {
       justify-self: start;
@@ -676,14 +676,14 @@
     .strip-tensor {
       justify-self: center;
       align-self: center;
-      width: 50px;
+      width: 40px;
     }
     .strip-tone {
       justify-self: center;
       align-self: center;
       font-size: 11px;
       letter-spacing: 0.8px;
-      min-width: 50px;
+      min-width: 40px;
       text-align: center;
     }
 
@@ -845,11 +845,22 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
       .sequencer-wrap {
-        grid-template-columns: 150px minmax(0, 1fr);
+        grid-template-columns: 190px minmax(0, 1fr);
       }
       .track-strip {
-        width: 150px;
-        min-width: 150px;
+        width: 190px;
+        min-width: 190px;
+      }
+      .strip-row {
+        grid-template-columns: minmax(0, 1fr) 30px 30px 30px 30px;
+        gap: 3px;
+      }
+      .strip-mute,
+      .strip-solo,
+      .strip-tensor,
+      .strip-tone {
+        width: 30px;
+        min-width: 30px;
       }
       .step-area {
         overflow-x: auto;
@@ -892,29 +903,29 @@
         grid-template-columns: repeat(5, minmax(0, 1fr));
       }
       .sequencer-wrap {
-        grid-template-columns: 126px minmax(0, 1fr);
+        grid-template-columns: 144px minmax(0, 1fr);
         gap: 8px;
         padding: 8px;
       }
       .track-strip {
-        width: 126px;
-        min-width: 126px;
+        width: 144px;
+        min-width: 144px;
         gap: 8px;
       }
       .strip-row {
-        grid-template-columns: minmax(0, 1fr) 30px 30px 30px 30px;
-        gap: 4px;
+        grid-template-columns: minmax(0, 1fr) 24px 24px 24px 24px;
+        gap: 3px;
       }
       .strip-mute,
       .strip-solo,
       .strip-tensor,
       .strip-tone {
-        width: 30px;
-        min-width: 30px;
+        width: 24px;
+        min-width: 24px;
       }
       .strip-tone {
-        font-size: 9px;
-        letter-spacing: 0.4px;
+        font-size: 8px;
+        letter-spacing: 0.2px;
       }
       #sequencer .grid {
         min-width: 500px;
@@ -953,22 +964,22 @@
         padding: 8px 4px;
       }
       .sequencer-wrap {
-        grid-template-columns: 110px minmax(0, 1fr);
+        grid-template-columns: 124px minmax(0, 1fr);
       }
       .track-strip {
-        width: 110px;
-        min-width: 110px;
+        width: 124px;
+        min-width: 124px;
       }
       .strip-row {
-        grid-template-columns: minmax(0, 1fr) 24px 24px 24px 24px;
-        gap: 3px;
+        grid-template-columns: minmax(0, 1fr) 20px 20px 20px 20px;
+        gap: 2px;
       }
       .strip-mute,
       .strip-solo,
       .strip-tensor,
       .strip-tone {
-        width: 24px;
-        min-width: 24px;
+        width: 20px;
+        min-width: 20px;
       }
       .strip-tone {
         font-size: 8px;
@@ -3343,7 +3354,10 @@
         const loopSamples = clamp(Math.floor((tensorState.loopMs / 1000) * sampleRate), 256, len - 1);
         const smoothSamples = Math.max(24, Math.floor(24 + tensorState.smooth * 640));
         const trackTensorEnabled = trackState[trackIndex] ? trackState[trackIndex].tensorEnabled : false;
-        const focusAllowsTensor = dryModeEnabled ? fxFocusEffect === "tensor" : (tensorState.enabled && trackTensorEnabled);
+        const dryAppliesToTrack = dryModeEnabled && trackIndex === selectedTrackIndex;
+        const focusAllowsTensor = dryAppliesToTrack
+          ? fxFocusEffect === "tensor"
+          : (tensorState.enabled && trackTensorEnabled);
 
         if (focusAllowsTensor && !tensorState.freeze) {
           const triggerProb = clamp(tensorState.randomTrigger * (0.1 + tensorState.randomAmount * 0.9), 0, 1);
@@ -3576,8 +3590,7 @@
     }
 
     function updateTape() {
-      const tapeValueNorm = dryModeEnabled ? 0 : Number(tape.value);
-      const amount = 0.9 + (tapeValueNorm / 100) * 0.9;
+      const amount = 0.9 + (Number(tape.value) / 100) * 0.9;
       masterSaturation.curve = createSaturationCurve(amount);
     }
 
@@ -3790,7 +3803,10 @@
     function triggerSound(type, time, tIndex, velocity, data, stepDuration, modDeltas = null) {
       const state = trackState[tIndex];
       const layerEnergyBoost = modDeltas ? modDeltas.energyToNoise : 0;
-      const layerChance = dryModeEnabled ? 0 : clamp(Number(layer.value) / 100 + pressureAmount * 0.15 + layerEnergyBoost * 0.5, 0, 0.65);
+      const dryAppliesToTrack = dryModeEnabled && tIndex === selectedTrackIndex;
+      const layerChance = (dryAppliesToTrack && fxFocusEffect === "none")
+        ? 0
+        : clamp(Number(layer.value) / 100 + pressureAmount * 0.15 + layerEnergyBoost * 0.5, 0, 0.65);
 
       const chaosScale = getChaosScale();
       const rawStyle = state.style || "lofi";
@@ -4232,8 +4248,9 @@ function synthDustLayer(time, output, gainAmount) {
     }
 
     function updateTrackFx(chain, filterCutoff, resonance, state, fxMix, time) {
-      const focused = dryModeEnabled ? fxFocusEffect : "all";
-      const bypassAll = dryModeEnabled && focused === "none";
+      const dryAppliesToTrack = dryModeEnabled && chain.trackIndex === selectedTrackIndex;
+      const focused = dryAppliesToTrack ? fxFocusEffect : "all";
+      const bypassAll = dryAppliesToTrack && focused === "none";
       const useDist = focused === "all" ? state.dist : (focused === "dist" ? state.dist : 0);
       const useCrush = focused === "all" ? state.crush : (focused === "crush" ? state.crush : 0);
       const useDelay = focused === "all" ? state.delay : (focused === "delay" ? state.delay : 0);
@@ -4517,9 +4534,10 @@ function synthDustLayer(time, output, gainAmount) {
         fxFocusInfo.textContent = "Dry mode off";
         return;
       }
+      const trackName = tracks[selectedTrackIndex] ? tracks[selectedTrackIndex].name : `T${selectedTrackIndex + 1}`;
       fxFocusInfo.textContent = fxFocusEffect === "none"
-        ? "All effects bypassed"
-        : `Auditioning: ${fxFocusEffect.toUpperCase()}`;
+        ? `Bypassed FX on ${trackName}`
+        : `Auditioning ${fxFocusEffect.toUpperCase()} on ${trackName}`;
     }
     if (dryMode) {
       dryMode.addEventListener("change", () => {
