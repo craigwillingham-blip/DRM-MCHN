@@ -122,11 +122,25 @@
       font-size: 9px;
       color: rgba(0,0,0,0.5);
     }
-    .controls {
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 16px;
+      align-items: start;
+      margin-top: 18px;
+    }
+    .left-col,
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 0;
+    }
+    .top-controls,
+    .bottom-controls {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
       gap: 12px;
-      margin-top: 18px;
     }
     .xy-pad {
       position: relative;
@@ -292,6 +306,124 @@
     .preset-row button {
       width: 100%;
     }
+    .sketch-controls {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .sketch-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 8px;
+    }
+    .sketch-select {
+      display: grid;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+    .sketch-select select {
+      background: var(--panel-3);
+      color: var(--text);
+      border: 1px solid #263341;
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 13px;
+    }
+    .sketch-locks {
+      display: grid;
+      gap: 6px;
+    }
+    .lock-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 10px 12px;
+      align-items: center;
+    }
+    .lock-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      min-height: 40px;
+      box-sizing: border-box;
+      width: 100%;
+      background: var(--panel-3);
+      border: 1px solid #263341;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .lock-pill .pill-check {
+      flex: 0 0 auto;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .lock-pill .pill-label {
+      flex: 1 1 auto;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1;
+      display: block;
+    }
+    .sketch-inline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: space-between;
+    }
+    .variation-meter {
+      height: 8px;
+      background: #0f151c;
+      border: 1px solid #263341;
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+      flex: 1 1 auto;
+      min-width: 120px;
+    }
+    .variation-meter span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #2bd4a4, #f5c542, #ff6b6b);
+      transition: width 0.2s ease;
+    }
+    .sketch-summary {
+      line-height: 1.4;
+      color: var(--muted);
+    }
+    .palette-panel {
+      background: #10161d;
+      border: 1px solid #1f2933;
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+    .palette-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 6px 10px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .palette-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .palette-tag {
+      color: var(--accent-2);
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -311,123 +443,260 @@
       </div>
     </header>
 
-    <section id="sequencer"></section>
+    <div class="layout">
+      <div class="left-col">
+        <div class="top-controls">
+          <div class="card">
+            <h3>XY Groove</h3>
+            <div id="xyPad" class="xy-pad">
+              <div class="xy-crosshair" id="xyCrosshair"></div>
+              <div class="xy-handle" id="xyHandle"></div>
+            </div>
+            <div class="small">X = swing, Y = looseness</div>
+          </div>
+          <div class="card">
+            <h3>Tempo</h3>
+            <input id="tempo" type="range" min="88" max="140" value="116" />
+            <input id="tempoNumber" type="number" min="88" max="140" value="116" />
+            <div class="small"><span id="tempoValue">116</span> BPM</div>
+          </div>
+          <div class="card">
+            <h3>Quick Sketch</h3>
+            <div class="preset-row">
+              <button id="sketchA">Sketch A</button>
+              <button id="sketchB">Sketch B</button>
+              <button id="sketchC">Sketch C</button>
+            </div>
+            <div class="small">A: Pocket • B: Lurch • C: Shuffle (Hotkeys 1/2/3)</div>
+            <div class="sketch-controls">
+              <div class="sketch-row">
+                <div class="sketch-select">
+                  <label for="sketchGroove">Groove</label>
+                  <select id="sketchGroove">
+                    <option value="random" selected>Random</option>
+                    <option value="Pocket">Pocket</option>
+                    <option value="Lurch">Lurch</option>
+                    <option value="Swing">Swing</option>
+                    <option value="Drunk">Drunk</option>
+                  </select>
+                </div>
+                <div class="sketch-select">
+                  <label for="sketchDensity">Density</label>
+                  <select id="sketchDensity">
+                    <option value="random" selected>Random</option>
+                    <option value="Sparse">Sparse</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Dense">Dense</option>
+                  </select>
+                </div>
+                <div class="sketch-select">
+                  <label for="sketchAccent">Accent</label>
+                  <select id="sketchAccent">
+                    <option value="random" selected>Random</option>
+                    <option value="Downbeat">Downbeat</option>
+                    <option value="Offbeat">Offbeat</option>
+                    <option value="Ghosted">Ghosted</option>
+                  </select>
+                </div>
+                <div class="sketch-select">
+                  <label for="sketchHumanize">Humanize</label>
+                  <select id="sketchHumanize">
+                    <option value="random" selected>Random</option>
+                    <option value="Mild">Mild</option>
+                    <option value="Live">Live</option>
+                    <option value="Chaos">Chaos</option>
+                  </select>
+                </div>
+              </div>
+              <div class="sketch-locks">
+                <div class="small">Lock Tracks</div>
+                <div class="lock-grid">
+                  <label class="lock-pill"><input class="pill-check" type="checkbox" data-lock-track="0" /><span class="pill-label">Kick</span></label>
+                  <label class="lock-pill"><input class="pill-check" type="checkbox" data-lock-track="1" /><span class="pill-label">Snare</span></label>
+                  <label class="lock-pill"><input class="pill-check" type="checkbox" data-lock-track="2" /><span class="pill-label">Hat</span></label>
+                  <label class="lock-pill"><input class="pill-check" type="checkbox" data-lock-track="3" /><span class="pill-label">Clap</span></label>
+                  <label class="lock-pill"><input class="pill-check" type="checkbox" data-lock-track="4" /><span class="pill-label">Tom</span></label>
+                  <label class="lock-pill"><input class="pill-check" type="checkbox" data-lock-track="5" /><span class="pill-label">Perc</span></label>
+                  <label class="lock-pill"><input class="pill-check" type="checkbox" data-lock-track="6" /><span class="pill-label">Ride</span></label>
+                  <label class="lock-pill"><input class="pill-check" type="checkbox" data-lock-track="7" /><span class="pill-label">Fx</span></label>
+                </div>
+              </div>
+              <div class="sketch-inline">
+                <div class="variation-meter" id="quickVariation"><span></span></div>
+                <span class="small" id="quickVariationValue">Var 0%</span>
+              </div>
+              <div class="small sketch-summary" id="quickSketchSummary">Ready.</div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Genre Sketch</h3>
+            <div class="preset-row">
+              <button id="sketchHouse">House</button>
+              <button id="sketchTechno">Techno</button>
+              <button id="sketchHipHop">Hip Hop</button>
+            </div>
+            <div class="small">Experimental genre starters (Hotkeys 4/5/6)</div>
+            <div class="sketch-controls">
+              <div class="sketch-row">
+                <div class="sketch-select">
+                  <label for="houseFlavor">House</label>
+                  <select id="houseFlavor">
+                    <option value="Deep" selected>Deep</option>
+                    <option value="Jackin'">Jackin'</option>
+                    <option value="Dub">Dub</option>
+                    <option value="Beatdown">Beatdown</option>
+                  </select>
+                </div>
+                <div class="sketch-select">
+                  <label for="technoFlavor">Techno</label>
+                  <select id="technoFlavor">
+                    <option value="Minimal" selected>Minimal</option>
+                    <option value="Industrial">Industrial</option>
+                    <option value="Hypnotic">Hypnotic</option>
+                  </select>
+                </div>
+                <div class="sketch-select">
+                  <label for="hiphopFlavor">Hip Hop</label>
+                  <select id="hiphopFlavor">
+                    <option value="Boom Bap" selected>Boom Bap</option>
+                    <option value="Lo-Fi">Lo-Fi</option>
+                    <option value="Experimental">Experimental</option>
+                  </select>
+                </div>
+                <div class="sketch-select">
+                  <label>&nbsp;</label>
+                  <button id="sketchSurprise" class="primary">Surprise Me</button>
+                </div>
+              </div>
+              <div class="sketch-inline">
+                <div class="variation-meter" id="genreVariation"><span></span></div>
+                <span class="small" id="genreVariationValue">Var 0%</span>
+              </div>
+              <div class="small sketch-summary" id="genreSketchSummary">Ready.</div>
+              <div class="palette-panel" style="margin-top:10px;">
+                <div class="small">Instrument Palette (Tags)</div>
+                <div class="palette-list" id="paletteList"></div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-    <section class="controls">
-      <div class="card">
-        <h3>XY Groove</h3>
-        <div id="xyPad" class="xy-pad">
-          <div class="xy-crosshair" id="xyCrosshair"></div>
-          <div class="xy-handle" id="xyHandle"></div>
+        <section id="sequencer"></section>
+
+        <div class="bottom-controls">
+          <div class="card">
+            <h3>Track Faders</h3>
+            <div class="faders" id="faders"></div>
+          </div>
+          <div class="card">
+            <h3>Track Knobs</h3>
+            <div class="knob-grid" id="knobs"></div>
+          </div>
         </div>
-        <div class="small">X = swing, Y = looseness</div>
       </div>
-      <div class="card">
-        <h3>Tempo</h3>
-        <input id="tempo" type="range" min="88" max="140" value="116" />
-        <input id="tempoNumber" type="number" min="88" max="140" value="116" />
-        <div class="small"><span id="tempoValue">116</span> BPM</div>
-      </div>
-      <div class="card">
-        <h3>Swing</h3>
-        <input id="swing" type="range" min="0" max="70" value="24" />
-        <div class="small"><span id="swingValue">24</span> ms</div>
-      </div>
-      <div class="card">
-        <h3>Master Tape</h3>
-        <input id="tape" type="range" min="0" max="100" value="35" />
-        <div class="small"><span id="tapeValue">35</span>%</div>
-      </div>
-      <div class="card">
-        <h3>Noise Layer</h3>
-        <input id="layer" type="range" min="0" max="100" value="35" />
-        <div class="small"><span id="layerValue">35</span>% chance</div>
-      </div>
-      <div class="card">
-        <h3>Humanize</h3>
-        <select id="groovePreset">
-          <option value="tight">Tight</option>
-          <option value="loose" selected>Loose</option>
-          <option value="live">Live MPC</option>
-          <option value="theo">Theo Mode</option>
-        </select>
-        <div class="inline"><label>Looseness</label><span class="small" id="loosenessValue">24</span></div>
-        <input id="looseness" type="range" min="0" max="40" value="24" />
-        <div class="inline"><label>Vel Var</label><span class="small" id="velVarValue">18%</span></div>
-        <input id="velVar" type="range" min="0" max="40" value="18" />
-        <div class="inline"><label>Swing Drift</label><span class="small" id="swingVarValue">12</span></div>
-        <input id="swingVar" type="range" min="0" max="30" value="12" />
-        <div class="inline"><label>Pulse Drift</label><span class="small" id="pulseValue">0.6</span></div>
-        <input id="pulse" type="range" min="0" max="2" step="0.1" value="0.6" />
-        <div class="inline"><label>Detune</label><span class="small" id="detuneValue">1.2</span></div>
-        <input id="detune" type="range" min="0" max="2" step="0.1" value="1.2" />
-        <div class="inline"><label>Mod</label><span class="small" id="modValue">18%</span></div>
-        <input id="mod" type="range" min="0" max="40" value="18" />
-      </div>
-      <div class="card">
-        <h3>Max Chaos</h3>
-        <input id="chaos" type="range" min="0" max="200" value="110" />
-        <div class="small"><span id="chaosValue">110</span>%</div>
-      </div>
-      <div class="card">
-        <h3>Quick Sketch</h3>
-        <div class="preset-row">
-          <button id="sketchA">Sketch A</button>
-          <button id="sketchB">Sketch B</button>
-          <button id="sketchC">Sketch C</button>
+      <div class="right-col">
+        <div class="card">
+          <h3>Swing</h3>
+          <input id="swing" type="range" min="0" max="70" value="24" />
+          <div class="small"><span id="swingValue">24</span> ms</div>
         </div>
-        <div class="small">A: Pocket • B: Lurch • C: Shuffle (Hotkeys 1/2/3)</div>
-      </div>
-      <div class="card">
-        <h3>Genre Sketch</h3>
-        <div class="preset-row">
-          <button id="sketchHouse">House</button>
-          <button id="sketchTechno">Techno</button>
-          <button id="sketchHipHop">Hip Hop</button>
+        <div class="card">
+          <h3>Master Tape</h3>
+          <input id="tape" type="range" min="0" max="100" value="35" />
+          <div class="small"><span id="tapeValue">35</span>%</div>
         </div>
-        <div class="small">Experimental genre starters (Hotkeys 4/5/6)</div>
+        <div class="card">
+          <h3>Noise Layer</h3>
+          <input id="layer" type="range" min="0" max="100" value="35" />
+          <div class="small"><span id="layerValue">35</span>% chance</div>
+        </div>
+        <div class="card">
+          <h3>Humanize</h3>
+          <select id="groovePreset">
+            <option value="tight">Tight</option>
+            <option value="loose" selected>Loose</option>
+            <option value="live">Live MPC</option>
+            <option value="theo">Theo Mode</option>
+          </select>
+          <div class="inline"><label>Looseness</label><span class="small" id="loosenessValue">24</span></div>
+          <input id="looseness" type="range" min="0" max="40" value="24" />
+          <div class="inline"><label>Vel Var</label><span class="small" id="velVarValue">18%</span></div>
+          <input id="velVar" type="range" min="0" max="40" value="18" />
+          <div class="inline"><label>Swing Drift</label><span class="small" id="swingVarValue">12</span></div>
+          <input id="swingVar" type="range" min="0" max="30" value="12" />
+          <div class="inline"><label>Pulse Drift</label><span class="small" id="pulseValue">0.6</span></div>
+          <input id="pulse" type="range" min="0" max="2" step="0.1" value="0.6" />
+          <div class="inline"><label>Detune</label><span class="small" id="detuneValue">1.2</span></div>
+          <input id="detune" type="range" min="0" max="2" step="0.1" value="1.2" />
+          <div class="inline"><label>Mod</label><span class="small" id="modValue">18%</span></div>
+          <input id="mod" type="range" min="0" max="40" value="18" />
+        </div>
+        <div class="card">
+          <h3>Max Chaos</h3>
+          <input id="chaos" type="range" min="0" max="200" value="110" />
+          <div class="small"><span id="chaosValue">110</span>%</div>
+        </div>
+        <div class="card">
+          <h3>Pressure</h3>
+          <input id="pressure" type="range" min="0" max="100" value="0" />
+          <div class="small"><span id="pressureValue">0</span>%</div>
+        </div>
+        <div class="card">
+          <h3>Behavior Engine</h3>
+          <label for="headroomMode">Headroom Coupling</label>
+          <select id="headroomMode">
+            <option value="off">Off</option>
+            <option value="glue" selected>Glue</option>
+            <option value="punch">Punch</option>
+            <option value="dirt">Dirt</option>
+            <option value="collapse">Collapse</option>
+          </select>
+          <div class="inline"><label>Coupling</label><span class="small" id="headroomAmountValue">45%</span></div>
+          <input id="headroomAmount" type="range" min="0" max="100" value="45" />
+          <label for="velocityCrushMode">Velocity Bit-Depth</label>
+          <select id="velocityCrushMode">
+            <option value="ghost_grit" selected>Ghost = Grit</option>
+            <option value="accent_grit">Accent = Grit</option>
+            <option value="off">Off</option>
+          </select>
+          <div class="inline"><label>Evolution</label><span class="small" id="evolutionAmountValue">10%</span></div>
+          <input id="evolutionAmount" type="range" min="0" max="100" value="10" />
+          <div class="small" id="evolutionMemoryInfo">Memory 0/4</div>
+        </div>
+        <div class="card">
+          <h3>Step Editor</h3>
+          <div class="small" id="stepLabel">No step selected (Alt+Click a step)</div>
+          <div class="inline"><label>Chance</label><span class="small" id="chanceValue">100%</span></div>
+          <input id="stepChance" type="range" min="0" max="100" value="100" />
+          <div class="inline"><label>Every N</label><span class="small" id="everyValue">1</span></div>
+          <input id="stepEvery" type="range" min="1" max="8" value="1" />
+          <div class="inline"><label>Pitch Lock</label><span class="small" id="lockPitchValue">0</span></div>
+          <input id="lockPitch" type="range" min="-12" max="12" value="0" />
+          <label class="small"><input id="lockPitchEnable" type="checkbox" /> Enable</label>
+          <div class="inline"><label>Reverse</label><span class="small" id="lockReverseValue">Off</span></div>
+          <input id="lockReverse" type="checkbox" />
+          <div class="inline"><label>Slice</label><span class="small" id="lockSliceValue">0</span></div>
+          <input id="lockSlice" type="range" min="0" max="15" value="0" />
+          <label class="small"><input id="lockSliceEnable" type="checkbox" /> Enable</label>
+          <div class="inline"><label>Stretch</label><span class="small" id="lockStretchValue">1.0</span></div>
+          <input id="lockStretch" type="range" min="0.5" max="2" step="0.1" value="1" />
+          <label class="small"><input id="lockStretchEnable" type="checkbox" /> Enable</label>
+          <div class="inline"><label>Filter</label><span class="small" id="lockFilterValue">1200</span></div>
+          <input id="lockFilter" type="range" min="300" max="8000" value="1200" />
+          <label class="small"><input id="lockFilterEnable" type="checkbox" /> Enable</label>
+          <div class="inline"><label>Resonance</label><span class="small" id="lockResValue">1.0</span></div>
+          <input id="lockRes" type="range" min="0.1" max="12" step="0.1" value="1" />
+          <label class="small"><input id="lockResEnable" type="checkbox" /> Enable</label>
+          <div class="inline"><label>Decay</label><span class="small" id="lockDecayValue">0.5</span></div>
+          <input id="lockDecay" type="range" min="0.1" max="1.2" step="0.05" value="0.5" />
+          <label class="small"><input id="lockDecayEnable" type="checkbox" /> Enable</label>
+          <div class="inline"><label>FX Mix</label><span class="small" id="lockFxValue">30%</span></div>
+          <input id="lockFx" type="range" min="0" max="100" value="30" />
+          <label class="small"><input id="lockFxEnable" type="checkbox" /> Enable</label>
+          <button id="clearLocks">Clear Locks</button>
+        </div>
       </div>
-      <div class="card">
-        <h3>Track Faders</h3>
-        <div class="faders" id="faders"></div>
-      </div>
-      <div class="card">
-        <h3>Track Knobs</h3>
-        <div class="knob-grid" id="knobs"></div>
-      </div>
-      <div class="card">
-        <h3>Step Editor</h3>
-        <div class="small" id="stepLabel">No step selected (Alt+Click a step)</div>
-        <div class="inline"><label>Chance</label><span class="small" id="chanceValue">100%</span></div>
-        <input id="stepChance" type="range" min="0" max="100" value="100" />
-        <div class="inline"><label>Every N</label><span class="small" id="everyValue">1</span></div>
-        <input id="stepEvery" type="range" min="1" max="8" value="1" />
-        <div class="inline"><label>Pitch Lock</label><span class="small" id="lockPitchValue">0</span></div>
-        <input id="lockPitch" type="range" min="-12" max="12" value="0" />
-        <label class="small"><input id="lockPitchEnable" type="checkbox" /> Enable</label>
-        <div class="inline"><label>Reverse</label><span class="small" id="lockReverseValue">Off</span></div>
-        <input id="lockReverse" type="checkbox" />
-        <div class="inline"><label>Slice</label><span class="small" id="lockSliceValue">0</span></div>
-        <input id="lockSlice" type="range" min="0" max="15" value="0" />
-        <label class="small"><input id="lockSliceEnable" type="checkbox" /> Enable</label>
-        <div class="inline"><label>Stretch</label><span class="small" id="lockStretchValue">1.0</span></div>
-        <input id="lockStretch" type="range" min="0.5" max="2" step="0.1" value="1" />
-        <label class="small"><input id="lockStretchEnable" type="checkbox" /> Enable</label>
-        <div class="inline"><label>Filter</label><span class="small" id="lockFilterValue">1200</span></div>
-        <input id="lockFilter" type="range" min="300" max="8000" value="1200" />
-        <label class="small"><input id="lockFilterEnable" type="checkbox" /> Enable</label>
-        <div class="inline"><label>Resonance</label><span class="small" id="lockResValue">1.0</span></div>
-        <input id="lockRes" type="range" min="0.1" max="12" step="0.1" value="1" />
-        <label class="small"><input id="lockResEnable" type="checkbox" /> Enable</label>
-        <div class="inline"><label>Decay</label><span class="small" id="lockDecayValue">0.5</span></div>
-        <input id="lockDecay" type="range" min="0.1" max="1.2" step="0.05" value="0.5" />
-        <label class="small"><input id="lockDecayEnable" type="checkbox" /> Enable</label>
-        <div class="inline"><label>FX Mix</label><span class="small" id="lockFxValue">30%</span></div>
-        <input id="lockFx" type="range" min="0" max="100" value="30" />
-        <label class="small"><input id="lockFxEnable" type="checkbox" /> Enable</label>
-        <button id="clearLocks">Clear Locks</button>
-      </div>
-    </section>
+    </div>
 
     <section id="trackControls" class="track-controls"></section>
 
@@ -517,6 +786,78 @@
       live: { looseness: 28, velocityVar: 0.22, swingVar: 18, pulseDrift: 0.9, detune: 1.4, mod: 0.22 },
       theo: { looseness: 36, velocityVar: 0.3, swingVar: 24, pulseDrift: 1.3, detune: 1.8, mod: 0.3 }
     };
+
+    const SKETCH_PARAMS = {
+      groove: ["Pocket", "Lurch", "Swing", "Drunk"],
+      density: ["Sparse", "Medium", "Dense"],
+      accent: ["Downbeat", "Offbeat", "Ghosted"],
+      humanize: ["Mild", "Live", "Chaos"]
+    };
+
+    const GENRE_FLAVORS = {
+      House: ["Deep", "Jackin'", "Dub", "Beatdown"],
+      Techno: ["Minimal", "Industrial", "Hypnotic"],
+      HipHop: ["Boom Bap", "Lo-Fi", "Experimental"]
+    };
+
+    const INSTRUMENT_PALETTE = [
+      { name: "Triangle", tag: "High Perc" },
+      { name: "Woodblock", tag: "Hit Snap" },
+      { name: "Kettle Drum", tag: "Tuned Low" },
+      { name: "Conga", tag: "Tuned Mid" },
+      { name: "Bongo", tag: "Tuned High" },
+      { name: "Shaker", tag: "Texture" },
+      { name: "Cowbell", tag: "Lead Perc" },
+      { name: "Bell Tree", tag: "Accent FX" },
+      { name: "Tabla Daya", tag: "Tuned Mod" },
+      { name: "Tabla Baya", tag: "Tuned Mod" }
+    ];
+
+    const sketchLocks = new Set();
+    let lastSketchName = "";
+
+    // ===== Character Filter Bus =====
+    let characterEnabled = true;
+    let characterPreGain, characterPostGain;
+    let characterFilter1, characterFilter2;
+    let energyAnalyser, energyData, energyTimerId = null;
+
+    let characterBaseCutoff = 800;
+    let characterBaseQ = 0.9;
+    let characterBaseDrive = 1.0;
+
+    let characterEnvAmount = 2500;
+    let characterEnvAttack = 0.004;
+    let characterEnvDecay = 0.11;
+
+    let characterJitterAmount = 0.01;
+    let lastJitter = 1.0;
+
+    let characterDriveEnvAmount = 0.25;
+    let characterDriveEnvDecay = 0.1;
+
+    let energyModEnabled = true;
+    let energyModDepthHz = 90;
+    let energyModSmooth = 0.85;
+    let energyValue = 0.0;
+    let energyUpdateHz = 30;
+
+    let hfDampAmount = 0.18;
+    let hfDampStartQ = 6.0;
+
+    // ===== Pressure Macro =====
+    let pressureAmount = 0.0;
+    const baseNoiseLayer = 0.35;
+
+    // ===== Behavior Engine =====
+    let headroomModeValue = "glue";
+    let headroomAmountValueNum = 0.45;
+    let velocityCrushModeValue = "ghost_grit";
+    let evolutionAmount = 0.10;
+    let transientAccentBoost = 0.0;
+    let previousStepLoad = 0.0;
+    const evolutionMemory = [];
+    const evolutionMemoryLimit = 4;
 
     // Pattern banks for sketch variety.
     const POCKET_KICKS = [
@@ -994,7 +1335,8 @@
       step.locks[param] = enabled ? value : null;
     }
     function resetSequence() {
-      sequence.forEach((row) => row.forEach((step) => {
+      sequence.forEach((row, tIndex) => row.forEach((step) => {
+        if (sketchLocks.has(tIndex)) return;
         step.on = false;
         step.velocity = 0.7;
         step.offset = 0;
@@ -1013,6 +1355,9 @@
     function sketchPocket() {
       setSketchActive("sketchA");
       resetSequence();
+      const params = getSketchParams();
+      const density = params.density === "Sparse" ? 0.35 : params.density === "Dense" ? 0.7 : 0.5;
+      const accentProb = params.accent === "Offbeat" ? 0.25 : params.accent === "Ghosted" ? 0.12 : 0.18;
       // Pocket: deep low-end with subtle ghost snare.
       const kicks = mutatePattern(pickVariant(POCKET_KICKS), 2, [0, 2, 3, 5, 6, 8, 9, 10, 12, 14, 15]);
       const snares = mutatePattern(pickVariant(POCKET_SNARES), 1, [4, 11, 12, 15]);
@@ -1020,33 +1365,39 @@
       fillKickPattern(kicks);
       fillSnarePattern(snares);
       fillGhosts(1, ghosts, 0.42);
-      fillHatPattern(0.5);
+      fillHatPattern(density);
       fillPercPattern(pickVariant(POCKET_PERC));
-      addHatAccentOverlay(0.15);
+      addHatAccentOverlay(accentProb);
       pushSketchVariation(0.35);
-      finalizeSketch();
+      finalizeSketch("Sketch A", params, 0.35, quickSketchSummary, quickVariation, quickVariationValue);
     }
 
     function sketchLurch() {
       setSketchActive("sketchB");
       resetSequence();
+      const params = getSketchParams();
+      const density = params.density === "Sparse" ? 0.3 : params.density === "Dense" ? 0.68 : 0.48;
+      const accentProb = params.accent === "Offbeat" ? 0.28 : params.accent === "Ghosted" ? 0.14 : 0.2;
       // Lurch: offbeat kicks, broken hats, more ghost activity.
       const kicks = mutatePattern(pickVariant(LURCH_KICKS), 3, [0, 2, 5, 6, 7, 9, 10, 13, 14, 15]);
       const snares = mutatePattern(pickVariant(LURCH_SNARES), 2, [4, 11, 12, 15]);
       const ghosts = mutatePattern(pickVariant(LURCH_GHOSTS), 3, [2, 3, 6, 7, 9, 10, 11, 14, 15]);
       fillKickPattern(kicks);
       fillSnarePattern(snares);
-      fillGhosts(1, ghosts, 0.4);
-      fillHatPattern(0.35);
+      fillGhosts(1, ghosts, 0.38);
+      fillHatPattern(density);
       fillPercPattern(pickVariant(LURCH_PERC));
-      addHatAccentOverlay(0.2);
+      addHatAccentOverlay(accentProb);
       pushSketchVariation(0.4);
-      finalizeSketch();
+      finalizeSketch("Sketch B", params, 0.4, quickSketchSummary, quickVariation, quickVariationValue);
     }
 
     function sketchShuffle() {
       setSketchActive("sketchC");
       resetSequence();
+      const params = getSketchParams();
+      const density = params.density === "Sparse" ? 0.32 : params.density === "Dense" ? 0.72 : 0.52;
+      const accentProb = params.accent === "Offbeat" ? 0.3 : params.accent === "Ghosted" ? 0.12 : 0.18;
       // Shuffle: sparse kicks, busier top, shifted accents.
       const kicks = mutatePattern(pickVariant(SHUFFLE_KICKS), 2, [0, 2, 5, 6, 7, 8, 11, 12, 14, 15]);
       const snares = mutatePattern(pickVariant(SHUFFLE_SNARES), 1, [4, 12, 15]);
@@ -1054,48 +1405,56 @@
       fillKickPattern(kicks);
       fillSnarePattern(snares);
       fillGhosts(1, ghosts, 0.38);
-      fillHatPattern(0.65);
+      fillHatPattern(density);
       fillRidePattern(pickVariant(SHUFFLE_RIDE));
       fillPercPattern(pickVariant(SHUFFLE_PERC));
-      addHatAccentOverlay(0.25);
+      addHatAccentOverlay(accentProb);
       pushSketchVariation(0.35);
-      finalizeSketch();
+      finalizeSketch("Sketch C", params, 0.35, quickSketchSummary, quickVariation, quickVariationValue);
     }
 
     function sketchHouse() {
       setSketchActive("sketchHouse");
       resetSequence();
+      const params = getSketchParams();
+      const density = params.density === "Sparse" ? 0.35 : params.density === "Dense" ? 0.7 : 0.5;
+      const accentProb = params.accent === "Offbeat" ? 0.22 : params.accent === "Ghosted" ? 0.1 : 0.16;
       // House: four-on-the-floor with offbeat hats.
       const kicks = mutatePattern(pickVariant(HOUSE_KICKS), 1, [0, 4, 7, 8, 12, 15]);
       const snares = mutatePattern(pickVariant(HOUSE_SNARES), 1, [4, 12, 14]);
       fillKickPattern(kicks);
       fillSnarePattern(snares);
-      [2, 6, 10, 14].forEach((s) => activateStep(2, s, 0.5));
-      fillHatPattern(0.35);
+      [2, 6, 10, 14].forEach((s) => activateStep(2, s, density));
+      fillHatPattern(density);
       fillPercPattern([7, 11]);
-      addHatAccentOverlay(0.2);
+      addHatAccentOverlay(accentProb);
       pushSketchVariation(0.45);
-      finalizeSketch();
+      finalizeSketch(`House ${houseFlavor ? houseFlavor.value : ""}`.trim(), params, 0.45, genreSketchSummary, genreVariation, genreVariationValue);
     }
 
     function sketchTechno() {
       setSketchActive("sketchTechno");
       resetSequence();
+      const params = getSketchParams();
+      const density = params.density === "Sparse" ? 0.35 : params.density === "Dense" ? 0.75 : 0.55;
+      const accentProb = params.accent === "Offbeat" ? 0.24 : params.accent === "Ghosted" ? 0.1 : 0.16;
       // Techno: rigid kicks, driving hats, sparse perc.
       const kicks = mutatePattern(pickVariant(TECHNO_KICKS), 1, [0, 4, 8, 11, 12, 14, 15]);
       const snares = mutatePattern(pickVariant(TECHNO_SNARES), 1, [4, 12, 15]);
       fillKickPattern(kicks);
       fillSnarePattern(snares);
-      for (let i = 0; i < steps; i++) activateStep(2, i, 0.38 + Math.random() * 0.12);
+      for (let i = 0; i < steps; i++) activateStep(2, i, density);
       fillPercPattern([3, 7, 11, 15]);
-      addHatAccentOverlay(0.35);
+      addHatAccentOverlay(accentProb);
       pushSketchVariation(0.5);
-      finalizeSketch();
+      finalizeSketch(`Techno ${technoFlavor ? technoFlavor.value : ""}`.trim(), params, 0.5, genreSketchSummary, genreVariation, genreVariationValue);
     }
 
     function sketchHipHop() {
       setSketchActive("sketchHipHop");
       resetSequence();
+      const params = getSketchParams();
+      const density = params.density === "Sparse" ? 0.32 : params.density === "Dense" ? 0.68 : 0.48;
       // Hip hop: syncopated kicks, laid-back hats, ghosted snare.
       const kicks = mutatePattern(pickVariant(HIPHOP_KICKS), 2, [0, 3, 5, 6, 7, 9, 10, 12, 13, 14, 15]);
       const snares = mutatePattern(pickVariant(HIPHOP_SNARES), 1, [4, 12, 15]);
@@ -1103,18 +1462,97 @@
       fillKickPattern(kicks);
       fillSnarePattern(snares);
       fillGhosts(1, ghosts, 0.35);
-      fillHatPattern(0.45);
+      fillHatPattern(density);
       fillPercPattern([9, 13]);
       pushSketchVariation(0.45);
-      finalizeSketch();
+      finalizeSketch(`Hip Hop ${hiphopFlavor ? hiphopFlavor.value : ""}`.trim(), params, 0.45, genreSketchSummary, genreVariation, genreVariationValue);
     }
 
-    function finalizeSketch() {
-      applyHumanizePreset(document.getElementById("groovePreset").value);
-      randomizeHumanizeDials(0.35);
+    function pickFromSelect(selectEl, options) {
+      if (!selectEl) return pickVariant(options);
+      const value = selectEl.value;
+      return value === "random" ? pickVariant(options) : value;
+    }
+
+    function getSketchParams() {
+      return {
+        groove: pickFromSelect(sketchGroove, SKETCH_PARAMS.groove),
+        density: pickFromSelect(sketchDensity, SKETCH_PARAMS.density),
+        accent: pickFromSelect(sketchAccent, SKETCH_PARAMS.accent),
+        humanize: pickFromSelect(sketchHumanize, SKETCH_PARAMS.humanize)
+      };
+    }
+
+    function setVariationIndicator(meterEl, valueEl, amount) {
+      if (meterEl) {
+        const span = meterEl.querySelector("span");
+        if (span) span.style.width = `${Math.round(amount * 100)}%`;
+      }
+      if (valueEl) valueEl.textContent = `Var ${Math.round(amount * 100)}%`;
+    }
+
+    function updateSketchSummary(name, params, targetEl) {
+      if (!targetEl) return;
+      targetEl.textContent = `${name} • ${params.groove} / ${params.density} / ${params.accent} / ${params.humanize}`;
+    }
+
+    function renderPalettePanel() {
+      if (!paletteList) return;
+      paletteList.innerHTML = "";
+      INSTRUMENT_PALETTE.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "palette-item";
+        row.innerHTML = `<span>${item.name}</span><span class="palette-tag">${item.tag}</span>`;
+        paletteList.appendChild(row);
+      });
+    }
+
+    function generateWhimsicalName() {
+      const a = ["Dust", "Wonk", "Rust", "Velvet", "Ghost", "Oil", "Neon", "Spiral", "Liquid", "Hush"];
+      const b = ["Spiral", "Crunch", "Bloom", "Stutter", "Flicker", "Collapse", "Echo", "Drift", "Valve", "Pulse"];
+      return `${pickVariant(a)} ${pickVariant(b)}`;
+    }
+
+    function setRandomSketchSelects() {
+      if (sketchGroove) sketchGroove.value = "random";
+      if (sketchDensity) sketchDensity.value = "random";
+      if (sketchAccent) sketchAccent.value = "random";
+      if (sketchHumanize) sketchHumanize.value = "random";
+    }
+
+    function surpriseSketch() {
+      setRandomSketchSelects();
+      const params = getSketchParams();
+      const name = generateWhimsicalName();
+      const options = [sketchPocket, sketchLurch, sketchShuffle, sketchHouse, sketchTechno, sketchHipHop];
+      const fn = pickVariant(options);
+      fn();
+      updateSketchSummary(name, params, genreSketchSummary);
+      lastSketchName = name;
+    }
+
+    function applyHumanizeMode(mode) {
+      const map = { Mild: 0.2, Live: 0.5, Chaos: 0.9 };
+      randomizeHumanizeDials(map[mode] ?? 0.35);
+    }
+
+    function finalizeSketch(name, params, variationAmount, summaryEl, variationMeter, variationValueEl) {
+      applyHumanizePreset(groovePreset.value);
+      applyHumanizeMode(params.humanize);
       applySketchParamNudges();
+      if (Math.random() < evolutionAmount) {
+        mutateTowardDivergence(1 + evolutionAmount * 2);
+      }
+      let divergence = getDivergenceScore(makePatternSignature());
+      if (divergence < 0.3) {
+        mutateTowardDivergence(1.5);
+      }
       rollHumanizeForAllSteps();
       refreshStepUI();
+      lastSketchName = name;
+      divergence = pushEvolutionSnapshot();
+      setVariationIndicator(variationMeter, variationValueEl, variationAmount);
+      updateSketchSummary(`${name} • Div ${Math.round(divergence * 100)}%`, params, summaryEl);
     }
 
     function pickVariant(options) {
@@ -1308,7 +1746,8 @@
       stepsList.forEach((s) => activateStep(trackIndex, s, velocity));
     }
 
-    function activateStep(trackIndex, stepIndex, velocity) {
+    function activateStep(trackIndex, stepIndex, velocity, force = false) {
+      if (!force && sketchLocks.has(trackIndex)) return;
       const step = sequence[trackIndex][stepIndex];
       step.on = true;
       step.velocity = velocity;
@@ -1324,10 +1763,236 @@
       return Math.min(Math.max(value, min), max);
     }
 
+    function mapLog01(x, minHz, maxHz) {
+      const minLog = Math.log(minHz);
+      const maxLog = Math.log(maxHz);
+      return Math.exp(minLog + (maxLog - minLog) * x);
+    }
+
+    function applyHfDamping(q, cutoffHz) {
+      if (q <= hfDampStartQ) {
+        return { cutoff: cutoffHz, q1: q, q2: q * 0.85 };
+      }
+      const excess = q - hfDampStartQ;
+      const t = Math.min(1, excess / 10);
+      const dampFactor = 1 - hfDampAmount * t;
+      const q1 = q;
+      const q2 = q * (0.85 - 0.12 * t);
+      return {
+        cutoff: Math.max(40, cutoffHz * dampFactor),
+        q1: Math.max(0.1, q1),
+        q2: Math.max(0.1, q2)
+      };
+    }
+
+    function triggerCharacterEnvelope(time, accent = 1.0) {
+      if (!characterEnabled || !characterFilter1 || !characterFilter2) return;
+
+      const energyHz = energyModEnabled ? (energyValue * energyModDepthHz) : 0;
+      const base = characterBaseCutoff + energyHz;
+
+      const rand = 1 + (Math.random() * 2 - 1) * characterJitterAmount;
+      lastJitter = lastJitter * 0.7 + rand * 0.3;
+      const jitteredBase = base * lastJitter;
+
+      const pressureScale = 1 + pressureAmount * 0.8;
+      const envDepth = characterEnvAmount * pressureScale * accent;
+      const rawPeak = jitteredBase + envDepth;
+
+      const qBoost = 0.18 * accent;
+      const targetQ = characterBaseQ + qBoost;
+
+      const dampedBase = applyHfDamping(targetQ, jitteredBase);
+      const dampedPeak = applyHfDamping(targetQ, rawPeak);
+
+      const f1 = characterFilter1.frequency;
+      const f2 = characterFilter2.frequency;
+      const q1 = characterFilter1.Q;
+      const q2 = characterFilter2.Q;
+
+      f1.cancelScheduledValues(time);
+      f2.cancelScheduledValues(time);
+      f1.setValueAtTime(dampedBase.cutoff, time);
+      f2.setValueAtTime(dampedBase.cutoff, time);
+
+      const stage2Peak = dampedPeak.cutoff * 0.96;
+      f1.linearRampToValueAtTime(dampedPeak.cutoff, time + characterEnvAttack);
+      f2.linearRampToValueAtTime(stage2Peak, time + characterEnvAttack);
+      const endTime = time + characterEnvAttack + characterEnvDecay;
+      f1.exponentialRampToValueAtTime(Math.max(40, dampedBase.cutoff), endTime);
+      f2.exponentialRampToValueAtTime(Math.max(40, dampedBase.cutoff), endTime);
+
+      q1.cancelScheduledValues(time);
+      q2.cancelScheduledValues(time);
+      q1.setValueAtTime(dampedBase.q1, time);
+      q2.setValueAtTime(dampedBase.q2, time);
+      q1.linearRampToValueAtTime(dampedPeak.q1, time + characterEnvAttack);
+      q2.linearRampToValueAtTime(dampedPeak.q2, time + characterEnvAttack);
+      q1.exponentialRampToValueAtTime(Math.max(0.1, dampedBase.q1), endTime);
+      q2.exponentialRampToValueAtTime(Math.max(0.1, dampedBase.q2), endTime);
+
+      if (characterPreGain) {
+        const g = characterPreGain.gain;
+        const drivePeak = characterBaseDrive + characterDriveEnvAmount * pressureScale * accent;
+        g.cancelScheduledValues(time);
+        g.setValueAtTime(characterBaseDrive, time);
+        g.linearRampToValueAtTime(drivePeak, time + 0.003);
+        g.exponentialRampToValueAtTime(Math.max(0.001, characterBaseDrive), time + characterDriveEnvDecay);
+      }
+    }
+
+    function startEnergyMeter() {
+      if (energyTimerId) return;
+      const intervalMs = Math.max(10, Math.floor(1000 / energyUpdateHz));
+      energyTimerId = setInterval(() => {
+        if (!energyModEnabled || !energyAnalyser) return;
+        energyAnalyser.getFloatTimeDomainData(energyData);
+        let sum = 0;
+        for (let i = 0; i < energyData.length; i++) {
+          const v = energyData[i];
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / energyData.length);
+        const target = Math.min(1, rms * 6.0);
+        energyValue = energyValue * energyModSmooth + target * (1 - energyModSmooth);
+      }, intervalMs);
+    }
+
+    function stopEnergyMeter() {
+      if (energyTimerId) {
+        clearInterval(energyTimerId);
+        energyTimerId = null;
+      }
+    }
+
     function getChaosScale() {
       const chaosEl = document.getElementById("chaos");
       if (!chaosEl) return 1;
       return clamp(Number(chaosEl.value) / 100, 0, 2);
+    }
+
+    function getModMatrixDeltas(hitCount, maxAccent) {
+      const densityNorm = clamp(hitCount / Math.max(1, tracks.length), 0, 1);
+      const swingNorm = clamp(Number(swing.value) / 70, 0, 1);
+      const chaosNorm = clamp(getChaosScale() / 2, 0, 1);
+      const energyNorm = clamp(energyValue, 0, 1);
+      return {
+        densityToCutoff: densityNorm * 160,
+        swingToRes: swingNorm * 0.6,
+        chaosToCrush: chaosNorm * 0.25,
+        energyToNoise: energyNorm * 0.18,
+        accentToDrive: clamp(maxAccent, 0, 1.4) * 0.12
+      };
+    }
+
+    function getHeadroomStepProfile(hits) {
+      if (!hits.length || headroomModeValue === "off") {
+        transientAccentBoost = 0;
+        previousStepLoad *= 0.9;
+        return { globalGain: 1, hatDuck: 0, snareAccent: 0, postLoad: previousStepLoad };
+      }
+      const stepLoad = clamp(hits.reduce((sum, h) => sum + h.velocity, 0) / 5.5, 0, 1.6);
+      const kickEnergy = hits.filter((h) => h.track.tone === "kick").reduce((sum, h) => sum + h.velocity, 0);
+      const snareEnergy = hits.filter((h) => h.track.tone === "snare").reduce((sum, h) => sum + h.velocity, 0);
+      const ratio = headroomAmountValueNum;
+      let globalGain = 1;
+      let hatDuck = 0;
+      let snareAccent = 0;
+      if (headroomModeValue === "glue") {
+        globalGain = 1 - stepLoad * 0.1 * ratio;
+      } else if (headroomModeValue === "punch") {
+        hatDuck = clamp(kickEnergy * 0.28 * ratio, 0, 0.45);
+        snareAccent = clamp(snareEnergy * 0.18 * ratio, 0, 0.22);
+      } else if (headroomModeValue === "dirt") {
+        globalGain = 1 - stepLoad * 0.18 * ratio;
+        snareAccent = clamp(stepLoad * 0.15 * ratio, 0, 0.2);
+      } else if (headroomModeValue === "collapse") {
+        const collapse = clamp((stepLoad + previousStepLoad * 0.75) * 0.2 * ratio, 0, 0.35);
+        globalGain = 1 - collapse;
+        hatDuck = collapse * 0.7;
+      }
+      transientAccentBoost = snareAccent;
+      const postLoad = clamp(previousStepLoad * 0.8 + stepLoad * 0.2, 0, 1.8);
+      previousStepLoad = postLoad;
+      return { globalGain, hatDuck, snareAccent, postLoad };
+    }
+
+    function applyHeadroomToVelocity(hit, velocity, profile) {
+      let out = velocity * profile.globalGain;
+      if (hit.track.tone === "hat" || hit.track.tone === "ride") out *= 1 - profile.hatDuck;
+      if (hit.track.tone === "snare") out *= 1 + profile.snareAccent;
+      if (headroomModeValue === "collapse" && hit.track.tone === "tom") {
+        out *= clamp(1 - profile.postLoad * 0.12, 0.65, 1);
+      }
+      return clamp(out, 0.02, 1.5);
+    }
+
+    function computeVelocityCrush(baseCrush, velocity, chaosDelta) {
+      if (velocityCrushModeValue === "off") return clamp(baseCrush + chaosDelta, 0, 1);
+      const velNorm = clamp(velocity / 1.2, 0, 1);
+      const bias = velocityCrushModeValue === "accent_grit" ? velNorm : (1 - velNorm);
+      const dynamic = bias * (0.42 + pressureAmount * 0.25);
+      return clamp(baseCrush + dynamic + chaosDelta, 0, 1);
+    }
+
+    function makePatternSignature() {
+      const packed = [];
+      for (let t = 0; t < sequence.length; t++) {
+        for (let s = 0; s < steps; s++) {
+          const step = sequence[t][s];
+          if (!step.on) {
+            packed.push("0");
+            continue;
+          }
+          const velBucket = Math.round(clamp(step.velocity, 0, 1.2) * 9);
+          packed.push(`1${velBucket.toString(36)}`);
+        }
+      }
+      return packed.join("");
+    }
+
+    function getDivergenceScore(signature) {
+      if (!evolutionMemory.length) return 1;
+      let bestSimilarity = 0;
+      for (let i = 0; i < evolutionMemory.length; i++) {
+        const prev = evolutionMemory[i];
+        let same = 0;
+        const len = Math.min(signature.length, prev.length);
+        for (let j = 0; j < len; j++) {
+          if (signature[j] === prev[j]) same += 1;
+        }
+        const similarity = len ? same / len : 0;
+        if (similarity > bestSimilarity) bestSimilarity = similarity;
+      }
+      return clamp(1 - bestSimilarity, 0, 1);
+    }
+
+    function mutateTowardDivergence(intensity = 1) {
+      const mutationCount = Math.max(1, Math.round((2 + pressureAmount * 4) * intensity));
+      for (let i = 0; i < mutationCount; i++) {
+        const t = Math.floor(Math.random() * tracks.length);
+        if (sketchLocks.has(t)) continue;
+        const s = Math.floor(Math.random() * steps);
+        const step = sequence[t][s];
+        if (Math.random() < 0.5) {
+          step.on = !step.on;
+        }
+        if (step.on) {
+          step.velocity = clamp(step.velocity + randomInRange(-0.18, 0.18), 0.2, 1.1);
+          step.offset = microOffsets[Math.floor(Math.random() * microOffsets.length)];
+        }
+      }
+    }
+
+    function pushEvolutionSnapshot() {
+      const signature = makePatternSignature();
+      const divergence = getDivergenceScore(signature);
+      evolutionMemory.push(signature);
+      if (evolutionMemory.length > evolutionMemoryLimit) evolutionMemory.shift();
+      if (evolutionMemoryInfo) {
+        evolutionMemoryInfo.textContent = `Memory ${evolutionMemory.length}/${evolutionMemoryLimit} · Div ${Math.round(divergence * 100)}%`;
+      }
+      return divergence;
     }
 
     buildGrid();
@@ -1426,6 +2091,30 @@
     const modValue = document.getElementById("modValue");
     const chaos = document.getElementById("chaos");
     const chaosValue = document.getElementById("chaosValue");
+    const pressure = document.getElementById("pressure");
+    const pressureValue = document.getElementById("pressureValue");
+    const headroomMode = document.getElementById("headroomMode");
+    const headroomAmount = document.getElementById("headroomAmount");
+    const headroomAmountValue = document.getElementById("headroomAmountValue");
+    const velocityCrushMode = document.getElementById("velocityCrushMode");
+    const evolutionAmountSlider = document.getElementById("evolutionAmount");
+    const evolutionAmountValue = document.getElementById("evolutionAmountValue");
+    const evolutionMemoryInfo = document.getElementById("evolutionMemoryInfo");
+    const sketchGroove = document.getElementById("sketchGroove");
+    const sketchDensity = document.getElementById("sketchDensity");
+    const sketchAccent = document.getElementById("sketchAccent");
+    const sketchHumanize = document.getElementById("sketchHumanize");
+    const houseFlavor = document.getElementById("houseFlavor");
+    const technoFlavor = document.getElementById("technoFlavor");
+    const hiphopFlavor = document.getElementById("hiphopFlavor");
+    const sketchSurprise = document.getElementById("sketchSurprise");
+    const quickVariation = document.getElementById("quickVariation");
+    const quickVariationValue = document.getElementById("quickVariationValue");
+    const genreVariation = document.getElementById("genreVariation");
+    const genreVariationValue = document.getElementById("genreVariationValue");
+    const quickSketchSummary = document.getElementById("quickSketchSummary");
+    const genreSketchSummary = document.getElementById("genreSketchSummary");
+    const paletteList = document.getElementById("paletteList");
     const xyPad = document.getElementById("xyPad");
     const xyCrosshair = document.getElementById("xyCrosshair");
     const xyHandle = document.getElementById("xyHandle");
@@ -1478,6 +2167,26 @@
         updateTape();
         reverbImpulse = createReverbImpulse(2.2, 2.0);
 
+        characterPreGain = audioContext.createGain();
+        characterPreGain.gain.value = characterBaseDrive;
+
+        characterFilter1 = audioContext.createBiquadFilter();
+        characterFilter1.type = "lowpass";
+        characterFilter1.frequency.value = 12000;
+        characterFilter1.Q.value = characterBaseQ;
+
+        characterFilter2 = audioContext.createBiquadFilter();
+        characterFilter2.type = "lowpass";
+        characterFilter2.frequency.value = 12000;
+        characterFilter2.Q.value = characterBaseQ * 0.85;
+
+        characterPostGain = audioContext.createGain();
+        characterPostGain.gain.value = 1.0;
+
+        energyAnalyser = audioContext.createAnalyser();
+        energyAnalyser.fftSize = 256;
+        energyData = new Float32Array(energyAnalyser.fftSize);
+
         trackState.forEach((track) => {
           track.trackOut = audioContext.createGain();
           track.trackOut.gain.value = track.volume;
@@ -1487,6 +2196,13 @@
         });
 
         masterGain
+          .connect(characterPreGain)
+          .connect(characterFilter1)
+          .connect(characterFilter2)
+          .connect(characterPostGain);
+
+        characterPostGain.connect(energyAnalyser);
+        characterPostGain
           .connect(masterCompressor)
           .connect(masterSaturation)
           .connect(audioContext.destination);
@@ -1752,6 +2468,10 @@
 
       const bpm = Number(tempo.value) + pulseDriftState;
       const stepDuration = (60.0 / bpm) / 4;
+      const timingCompression = 1 - pressureAmount * 0.25;
+      const hits = [];
+      let maxAccent = 0;
+      let shouldTriggerCharacter = false;
 
       tracks.forEach((track, tIndex) => {
         if (trackState[tIndex].mute) return;
@@ -1764,19 +2484,33 @@
         if (data.cond.every > 1 && (trackLoopCount[tIndex] % data.cond.every !== 0)) return;
 
         // Beatdown microtiming + humanize offset applied here.
-        const microTime = data.offset / 1000;
-        const humanTime = data.humanOffset / 1000;
+        const microTime = (data.offset / 1000) * timingCompression;
+        const humanTime = (data.humanOffset / 1000) * timingCompression;
         const velocity = data.velocity * data.humanVel;
+        if (velocity > maxAccent) maxAccent = velocity;
+        hits.push({ track, tIndex, data, microTime, humanTime, velocity });
+        shouldTriggerCharacter = true;
+      });
+
+      const modDeltas = getModMatrixDeltas(hits.length, maxAccent);
+      const headroomProfile = getHeadroomStepProfile(hits);
+
+      if (shouldTriggerCharacter && hits.length > 0) {
+        const scaledAccent = Math.max(0.6, Math.min(1.4, maxAccent + transientAccentBoost));
+        triggerCharacterEnvelope(time, scaledAccent);
+      }
+
+      hits.forEach((hit) => {
+        const coupledVelocity = applyHeadroomToVelocity(hit, hit.velocity, headroomProfile);
         try {
-          triggerSound(track.tone, time + microTime + humanTime, tIndex, velocity, data, stepDuration);
+          triggerSound(hit.track.tone, time + hit.microTime + hit.humanTime, hit.tIndex, coupledVelocity, hit.data, stepDuration, modDeltas);
         } catch (err) {
           console.error("Trigger error:", err);
         }
 
-        // Stutter logic for spontaneous flams/drags.
-        if (Math.random() < trackState[tIndex].stutter) {
+        if (Math.random() < trackState[hit.tIndex].stutter) {
           try {
-            triggerSound(track.tone, time + microTime + humanTime + 0.03, tIndex, velocity * 0.6, data, stepDuration);
+            triggerSound(hit.track.tone, time + hit.microTime + hit.humanTime + 0.03, hit.tIndex, coupledVelocity * 0.6, hit.data, stepDuration, modDeltas);
           } catch (err) {
             console.error("Stutter error:", err);
           }
@@ -1784,9 +2518,10 @@
       });
     }
 
-    function triggerSound(type, time, tIndex, velocity, data, stepDuration) {
+    function triggerSound(type, time, tIndex, velocity, data, stepDuration, modDeltas = null) {
       const state = trackState[tIndex];
-      const layerChance = Number(layer.value) / 100;
+      const layerEnergyBoost = modDeltas ? modDeltas.energyToNoise : 0;
+      const layerChance = clamp(Number(layer.value) / 100 + pressureAmount * 0.25 + layerEnergyBoost, 0, 1);
 
       const chaosScale = getChaosScale();
       const rawStyle = state.style || "lofi";
@@ -1802,13 +2537,16 @@
       const lockedFx = getLockedValue(data, "fx", state.fx);
       const reverse = data.locks.reverse === true;
 
-      const styledFilter = clamp(lockedFilter * (1 + styleProfile.filter * chaosScale), 300, 8000);
-      const styledRes = clamp(lockedRes * (1 + styleProfile.res * chaosScale), 0.1, 12);
+      const cutoffDelta = modDeltas ? modDeltas.densityToCutoff : 0;
+      const resDelta = modDeltas ? modDeltas.swingToRes : 0;
+      const styledFilter = clamp(lockedFilter * (1 + styleProfile.filter * chaosScale) + cutoffDelta, 300, 8000);
+      const styledRes = clamp(lockedRes * (1 + styleProfile.res * chaosScale) + resDelta, 0.1, 12);
       const styledDecay = clamp(lockedDecay * (1 + styleProfile.decay * chaosScale), 0.05, 1.2);
+      const chaosCrushDelta = modDeltas ? modDeltas.chaosToCrush : 0;
       const styledState = {
         ...state,
         dist: clamp(state.dist + styleProfile.dist * chaosScale, 0, 1),
-        crush: clamp(state.crush + styleProfile.crush * chaosScale, 0, 1),
+        crush: computeVelocityCrush(clamp(state.crush + styleProfile.crush * chaosScale, 0, 1), velocity, chaosCrushDelta),
         delay: clamp(state.delay + styleProfile.delay * chaosScale, 0, 1),
         reverb: clamp(state.reverb + styleProfile.reverb * chaosScale, 0, 1),
         fx: clamp(state.fx + styleProfile.fx * chaosScale, 0, 1),
@@ -2219,17 +2957,20 @@ function synthDustLayer(time, output, gainAmount) {
       dry.connect(output);
       wet.connect(output);
 
-      return { input, output, filter, distortion, crusher, delay, feedback, convolver, dry, wet };
+      return { input, output, filter, distortion, crusher, delay, feedback, convolver, dry, wet, lastCrush: null };
     }
 
     function updateTrackFx(chain, filterCutoff, resonance, state, fxMix, time) {
       chain.filter.frequency.setValueAtTime(filterCutoff, time);
       chain.filter.Q.value = clamp(resonance, 0.1, 12);
       chain.distortion.curve = createDistortionCurve(1 + state.dist * 4);
-      chain.crusher.disconnect();
-      chain.crusher = createBitCrusher(state.crush);
-      chain.filter.disconnect();
-      chain.filter.connect(chain.distortion).connect(chain.crusher).connect(chain.delay);
+      if (chain.lastCrush === null || Math.abs(chain.lastCrush - state.crush) > 0.03) {
+        try { chain.crusher.disconnect(); } catch (err) {}
+        chain.crusher = createBitCrusher(state.crush);
+        try { chain.filter.disconnect(); } catch (err) {}
+        chain.filter.connect(chain.distortion).connect(chain.crusher).connect(chain.delay);
+        chain.lastCrush = state.crush;
+      }
       chain.delay.delayTime.value = clamp(0.18 + state.delay * 0.25, 0.01, 0.6);
       chain.feedback.gain.value = clamp(0.2 + state.delay * 0.5, 0, 0.9);
       chain.convolver.buffer = reverbImpulse;
@@ -2322,6 +3063,7 @@ function synthDustLayer(time, output, gainAmount) {
       if (audioContext.state === "suspended") {
         audioContext.resume();
       }
+      startEnergyMeter();
       isPlaying = true;
       currentStep = 0;
       nextNoteTime = audioContext.currentTime + 0.05;
@@ -2334,6 +3076,7 @@ function synthDustLayer(time, output, gainAmount) {
       isPlaying = false;
       playButton.textContent = "Play";
       playButton.classList.remove("active");
+      stopEnergyMeter();
       if (schedulerId) {
         cancelAnimationFrame(schedulerId);
       }
@@ -2368,6 +3111,15 @@ function synthDustLayer(time, output, gainAmount) {
     document.getElementById("sketchHouse").addEventListener("click", () => sketchHouse());
     document.getElementById("sketchTechno").addEventListener("click", () => sketchTechno());
     document.getElementById("sketchHipHop").addEventListener("click", () => sketchHipHop());
+    if (sketchSurprise) sketchSurprise.addEventListener("click", () => surpriseSketch());
+
+    document.querySelectorAll("[data-lock-track]").forEach((input) => {
+      input.addEventListener("change", (event) => {
+        const idx = Number(event.target.dataset.lockTrack);
+        if (event.target.checked) sketchLocks.add(idx);
+        else sketchLocks.delete(idx);
+      });
+    });
 
     recordButton.addEventListener("click", () => {
       if (!isRecording) startRecording();
@@ -2439,6 +3191,34 @@ function synthDustLayer(time, output, gainAmount) {
     if (chaos) {
       chaos.addEventListener("input", () => {
         if (chaosValue) chaosValue.textContent = chaos.value;
+      });
+    }
+    if (pressure) {
+      pressure.addEventListener("input", () => {
+        pressureAmount = Number(pressure.value) / 100;
+        if (pressureValue) pressureValue.textContent = Math.round(pressureAmount * 100);
+      });
+    }
+    if (headroomMode) {
+      headroomMode.addEventListener("change", () => {
+        headroomModeValue = headroomMode.value;
+      });
+    }
+    if (headroomAmount) {
+      headroomAmount.addEventListener("input", () => {
+        headroomAmountValueNum = Number(headroomAmount.value) / 100;
+        if (headroomAmountValue) headroomAmountValue.textContent = `${Math.round(headroomAmountValueNum * 100)}%`;
+      });
+    }
+    if (velocityCrushMode) {
+      velocityCrushMode.addEventListener("change", () => {
+        velocityCrushModeValue = velocityCrushMode.value;
+      });
+    }
+    if (evolutionAmountSlider) {
+      evolutionAmountSlider.addEventListener("input", () => {
+        evolutionAmount = Number(evolutionAmountSlider.value) / 100;
+        if (evolutionAmountValue) evolutionAmountValue.textContent = `${Math.round(evolutionAmount * 100)}%`;
       });
     }
 
@@ -2577,6 +3357,21 @@ function synthDustLayer(time, output, gainAmount) {
     applyHumanizePreset("loose");
     setXYFromValues();
     if (chaos && chaosValue) chaosValue.textContent = chaos.value;
+    if (pressure && pressureValue) pressureValue.textContent = pressure.value;
+    if (headroomMode) headroomModeValue = headroomMode.value;
+    if (headroomAmount && headroomAmountValue) {
+      headroomAmountValueNum = Number(headroomAmount.value) / 100;
+      headroomAmountValue.textContent = `${Math.round(headroomAmountValueNum * 100)}%`;
+    }
+    if (velocityCrushMode) velocityCrushModeValue = velocityCrushMode.value;
+    if (evolutionAmountSlider && evolutionAmountValue) {
+      evolutionAmount = Number(evolutionAmountSlider.value) / 100;
+      evolutionAmountValue.textContent = `${Math.round(evolutionAmount * 100)}%`;
+    }
+    if (evolutionMemoryInfo) evolutionMemoryInfo.textContent = `Memory ${evolutionMemory.length}/${evolutionMemoryLimit}`;
+    setVariationIndicator(quickVariation, quickVariationValue, 0);
+    setVariationIndicator(genreVariation, genreVariationValue, 0);
+    renderPalettePanel();
     tracks.forEach((_, i) => updateKnobVisual(i));
   </script>
 </body>
