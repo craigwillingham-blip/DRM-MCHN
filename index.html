@@ -121,6 +121,13 @@
       right: 4px;
       font-size: 9px;
       color: rgba(0,0,0,0.5);
+      opacity: 0;
+      transition: opacity 0.12s ease;
+    }
+    .step:hover::after,
+    .step.selected::after,
+    body.show-velocity .step.on::after {
+      opacity: 1;
     }
     .layout {
       display: grid;
@@ -291,11 +298,28 @@
       padding: 6px 10px;
       font-size: 12px;
     }
+    .channel-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 30px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .solo {
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+    .solo.active {
+      color: var(--accent-2);
+      box-shadow: 0 0 0 2px var(--accent-2) inset;
+    }
     .hint {
       margin-top: 10px;
       font-size: 12px;
       color: var(--muted);
       line-height: 1.4;
+      opacity: 0.58;
     }
     .preset-row {
       display: grid;
@@ -338,7 +362,7 @@
     }
     .lock-grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px 12px;
       align-items: center;
     }
@@ -402,6 +426,31 @@
       line-height: 1.4;
       color: var(--muted);
     }
+    #quickSketchCard .preset-row button,
+    #sketchSurprise {
+      border-color: #3a4a5b;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.22);
+    }
+    .section-toggle {
+      width: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      font-size: 11px;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+    }
+    .section-toggle.subtle {
+      background: #0f151c;
+      border-color: #22303c;
+      font-size: 10px;
+      margin-bottom: 6px;
+    }
+    .section-body.collapsed {
+      display: none;
+    }
     .palette-panel {
       background: #10161d;
       border: 1px solid #1f2933;
@@ -424,6 +473,503 @@
       color: var(--accent-2);
       font-weight: 600;
     }
+
+    /* Layout stabilization overrides */
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      overflow-x: hidden;
+      overflow-y: auto;
+      display: block;
+      padding: 0;
+      align-items: initial;
+      justify-content: initial;
+    }
+
+    .app {
+      width: 100%;
+      min-height: 100dvh;
+      height: auto;
+      border-radius: 0;
+      border: 0;
+      display: grid;
+      grid-template-rows: auto 1fr auto auto;
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 430px;
+      gap: 16px;
+      min-height: 0;
+      align-items: start;
+      margin-top: 0;
+    }
+
+    .left-col {
+      min-width: 0;
+      min-height: 0;
+      overflow: visible;
+    }
+
+    .right-col {
+      width: 430px;
+      min-width: 430px;
+      max-width: 430px;
+      min-height: 0;
+      overflow: visible;
+    }
+
+    .mode-switch {
+      display: inline-flex;
+      gap: 6px;
+      padding-left: 4px;
+    }
+
+    .context-panel {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .context-tabs {
+      flex: 0 0 auto;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .tab-btn {
+      width: 100%;
+      padding: 10px 8px;
+      font-size: 12px;
+      letter-spacing: 0.8px;
+      color: #9aabbb;
+      background: #10161d;
+      border-color: #21303d;
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    }
+    .tab-btn.active {
+      color: var(--text);
+      background: #1f2b36;
+      border-color: #41566d;
+      box-shadow: 0 0 0 1px #4e647b inset;
+    }
+
+    .context-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: grid;
+      background: #0f151c;
+      border: 1px solid #1e2833;
+      border-radius: 12px;
+      padding: 10px;
+      max-height: min(68vh, 760px);
+    }
+
+    .tab-panel {
+      display: none;
+      align-content: start;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .tab-panel.active {
+      display: grid;
+      animation: tabFade 0.15s ease;
+    }
+    .tab-panel .card {
+      background: #121a23;
+      border-color: #253241;
+    }
+    .tab-panel[data-panel="track"] .card:first-child,
+    .tab-panel[data-panel="mix"] .card:first-child {
+      background: #17212c;
+      border-color: #344759;
+    }
+    .tab-panel[data-panel="generator"] #quickSketchCard {
+      background: #18222d;
+      border-color: #3a4e60;
+      box-shadow: 0 0 0 1px rgba(245, 197, 66, 0.08) inset;
+    }
+    .tab-panel[data-panel="generator"] #genreSketchCard {
+      background: #111820;
+      border-color: #24313d;
+    }
+    @keyframes tabFade {
+      from { opacity: 0; transform: translateY(3px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .sequencer-wrap {
+      display: grid;
+      grid-template-columns: 170px minmax(0, 1fr);
+      gap: 12px;
+      min-height: 0;
+      align-items: start;
+      background: linear-gradient(180deg, #101922 0%, #0b1016 100%);
+      border: 1px solid #253241;
+      border-radius: 12px;
+      padding: 10px;
+      box-shadow: inset 0 0 0 1px rgba(16, 26, 36, 0.8);
+    }
+
+    .track-strip {
+      width: 170px;
+      min-width: 170px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .step-area {
+      min-width: 0;
+      min-height: 360px;
+      overflow: hidden;
+    }
+
+    #sequencer {
+      width: 100%;
+      min-height: 360px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .strip-row,
+    .seq-row {
+      min-height: 40px;
+      display: grid;
+      align-items: center;
+      transition: background 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
+    }
+
+    .strip-row {
+      grid-template-columns: minmax(62px, 1fr) 56px 56px 56px;
+      gap: 8px;
+    }
+    .strip-name {
+      justify-self: start;
+      align-self: center;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .strip-mute,
+    .strip-solo {
+      justify-self: center;
+      align-self: center;
+      width: 56px;
+    }
+    .strip-tone {
+      justify-self: center;
+      align-self: center;
+      font-size: 11px;
+      letter-spacing: 0.8px;
+      min-width: 56px;
+      text-align: center;
+    }
+
+    .seq-row {
+      grid-template-columns: 1fr;
+      border-left: 2px solid transparent;
+      border-radius: 8px;
+      padding-left: 4px;
+    }
+    .strip-row.is-selected,
+    .seq-row.is-selected {
+      background: rgba(245, 197, 66, 0.11);
+    }
+    .seq-row.is-selected {
+      border-left-color: var(--accent);
+    }
+    .track-strip.focus-active .strip-row:not(.is-selected),
+    #sequencer.focus-active .seq-row:not(.is-selected) {
+      opacity: 0.84;
+    }
+    .strip-row.solo-muted,
+    .seq-row.solo-muted {
+      opacity: 0.45 !important;
+    }
+
+    .top-controls {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 8px;
+    }
+    #tempoCard,
+    #xyCard {
+      padding: 10px;
+    }
+    #tempoCard h3,
+    #xyCard h3 {
+      margin-bottom: 8px;
+    }
+
+    .bottom-controls:empty {
+      display: none;
+    }
+
+    .track-controls {
+      display: none;
+      margin-top: 0;
+      max-height: 36vh;
+      overflow-y: auto;
+    }
+
+    body.mode-perform .track-controls {
+      display: grid;
+    }
+    body.mode-sketch .step-area {
+      min-height: 300px;
+    }
+    body.mode-perform .left-col .top-controls {
+      opacity: 0.48;
+      filter: saturate(0.85);
+    }
+    body.mode-perform .sequencer-wrap,
+    body.mode-perform #fadersCard {
+      box-shadow: 0 0 0 1px rgba(245, 197, 66, 0.34) inset;
+    }
+    body:not(.mode-sketch) .hint {
+      display: none;
+    }
+    .mode-switch {
+      gap: 8px;
+      padding-left: 8px;
+    }
+    .mode-switch button.active {
+      box-shadow: 0 0 0 2px var(--accent) inset, 0 0 14px rgba(245, 197, 66, 0.2);
+    }
+    .step.pulse {
+      animation: stepPulse 0.16s ease;
+    }
+    @keyframes stepPulse {
+      from { box-shadow: 0 0 0 0 rgba(245, 197, 66, 0.55); }
+      to { box-shadow: 0 0 0 10px rgba(245, 197, 66, 0); }
+    }
+    .lock-pill.locked {
+      border-color: #7f6625;
+      color: #d7c384;
+      background: #1a1f1f;
+      box-shadow: 0 0 0 1px rgba(245, 197, 66, 0.18) inset;
+    }
+    #sequencer .step {
+      background: #0c131a;
+      border-color: #1f2b36;
+    }
+    #sequencer .step.on {
+      background: #f0be3d;
+      border-color: #c89a1e;
+    }
+    #genreSketchCard .section-toggle {
+      border-color: #334250;
+      background: #121a23;
+    }
+    #genreSketchCard .section-body {
+      border-top: 1px solid #22303d;
+      padding-top: 8px;
+    }
+    .hint {
+      opacity: 0.46;
+    }
+    .tab-panel[data-panel="groove"] #xyCard .xy-pad {
+      aspect-ratio: 16 / 10;
+      max-height: 180px;
+    }
+
+    @media (max-width: 1120px) {
+      .app {
+        padding: 12px;
+        gap: 10px;
+      }
+      .layout {
+        grid-template-columns: minmax(0, 1fr) 390px;
+        gap: 12px;
+      }
+      .right-col {
+        width: 390px;
+        min-width: 390px;
+        max-width: 390px;
+      }
+      .context-tabs {
+        gap: 6px;
+      }
+      .tab-btn {
+        font-size: 11px;
+        padding: 9px 6px;
+      }
+    }
+
+    @media (max-width: 920px) {
+      html, body {
+        height: auto;
+      }
+      body {
+        overflow: auto;
+      }
+      .app {
+        height: auto;
+        min-height: 100dvh;
+        grid-template-rows: auto auto auto auto;
+      }
+      .layout {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .right-col {
+        width: auto;
+        min-width: 0;
+        max-width: none;
+      }
+      .context-panel {
+        max-height: 50vh;
+      }
+      .top-controls {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .sequencer-wrap {
+        grid-template-columns: 150px minmax(0, 1fr);
+      }
+      .track-strip {
+        width: 150px;
+        min-width: 150px;
+      }
+      .step-area {
+        overflow-x: auto;
+        overflow-y: hidden;
+      }
+      #sequencer .grid {
+        min-width: 520px;
+      }
+    }
+
+    @media (max-width: 700px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      h1 {
+        font-size: 18px;
+        letter-spacing: 1.2px;
+      }
+      .transport {
+        width: 100%;
+        gap: 6px;
+      }
+      .transport button {
+        font-size: 12px;
+        padding: 8px 10px;
+      }
+      .mode-switch {
+        width: 100%;
+        padding-left: 0;
+        justify-content: flex-start;
+      }
+      .top-controls {
+        grid-template-columns: 1fr;
+      }
+      .context-panel {
+        max-height: 46vh;
+      }
+      .context-tabs {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+      .sequencer-wrap {
+        grid-template-columns: 126px minmax(0, 1fr);
+        gap: 8px;
+        padding: 8px;
+      }
+      .track-strip {
+        width: 126px;
+        min-width: 126px;
+        gap: 8px;
+      }
+      .strip-row {
+        grid-template-columns: minmax(0, 1fr) 34px 34px 34px;
+        gap: 4px;
+      }
+      .strip-mute,
+      .strip-solo,
+      .strip-tone {
+        width: 34px;
+        min-width: 34px;
+      }
+      .strip-tone {
+        font-size: 9px;
+        letter-spacing: 0.4px;
+      }
+      #sequencer .grid {
+        min-width: 500px;
+      }
+      .label {
+        font-size: 12px;
+      }
+      .mute {
+        font-size: 11px;
+        padding: 5px 7px;
+      }
+      .solo {
+        font-size: 11px;
+        padding: 5px 7px;
+      }
+      .lock-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .app {
+        padding: 10px;
+      }
+      .transport {
+        gap: 5px;
+      }
+      .transport button {
+        font-size: 11px;
+        padding: 7px 8px;
+      }
+      .tab-btn {
+        font-size: 10px;
+        letter-spacing: 0.5px;
+        padding: 8px 4px;
+      }
+      .sequencer-wrap {
+        grid-template-columns: 110px minmax(0, 1fr);
+      }
+      .track-strip {
+        width: 110px;
+        min-width: 110px;
+      }
+      .strip-row {
+        grid-template-columns: minmax(0, 1fr) 28px 28px 28px;
+        gap: 3px;
+      }
+      .strip-mute,
+      .strip-solo,
+      .strip-tone {
+        width: 28px;
+        min-width: 28px;
+      }
+      .strip-tone {
+        font-size: 8px;
+        letter-spacing: 0.2px;
+      }
+      #sequencer .grid {
+        min-width: 460px;
+        gap: 5px;
+      }
+      .step {
+        border-radius: 5px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -438,6 +984,11 @@
         <button id="resampleMaster">Resample Master</button>
         <button id="record">Record</button>
         <button id="exportWav">Stop & Export WAV</button>
+        <div class="mode-switch">
+          <button data-mode="sketch">Sketch</button>
+          <button data-mode="edit" class="active">Edit</button>
+          <button data-mode="perform">Perform</button>
+        </div>
         <span class="small" id="recordStatus">Idle</span>
         <span class="small">Space = Play/Pause</span>
       </div>
@@ -446,7 +997,7 @@
     <div class="layout">
       <div class="left-col">
         <div class="top-controls">
-          <div class="card">
+          <div class="card" id="xyCard">
             <h3>XY Groove</h3>
             <div id="xyPad" class="xy-pad">
               <div class="xy-crosshair" id="xyCrosshair"></div>
@@ -454,13 +1005,13 @@
             </div>
             <div class="small">X = swing, Y = looseness</div>
           </div>
-          <div class="card">
+          <div class="card" id="tempoCard">
             <h3>Tempo</h3>
             <input id="tempo" type="range" min="88" max="140" value="116" />
             <input id="tempoNumber" type="number" min="88" max="140" value="116" />
             <div class="small"><span id="tempoValue">116</span> BPM</div>
           </div>
-          <div class="card">
+          <div class="card" id="quickSketchCard">
             <h3>Quick Sketch</h3>
             <div class="preset-row">
               <button id="sketchA">Sketch A</button>
@@ -528,89 +1079,103 @@
               <div class="small sketch-summary" id="quickSketchSummary">Ready.</div>
             </div>
           </div>
-          <div class="card">
+          <div class="card" id="genreSketchCard">
             <h3>Genre Sketch</h3>
-            <div class="preset-row">
-              <button id="sketchHouse">House</button>
-              <button id="sketchTechno">Techno</button>
-              <button id="sketchHipHop">Hip Hop</button>
-            </div>
-            <div class="small">Experimental genre starters (Hotkeys 4/5/6)</div>
-            <div class="sketch-controls">
-              <div class="sketch-row">
-                <div class="sketch-select">
-                  <label for="houseFlavor">House</label>
-                  <select id="houseFlavor">
-                    <option value="Deep" selected>Deep</option>
-                    <option value="Jackin'">Jackin'</option>
-                    <option value="Dub">Dub</option>
-                    <option value="Beatdown">Beatdown</option>
-                  </select>
-                </div>
-                <div class="sketch-select">
-                  <label for="technoFlavor">Techno</label>
-                  <select id="technoFlavor">
-                    <option value="Minimal" selected>Minimal</option>
-                    <option value="Industrial">Industrial</option>
-                    <option value="Hypnotic">Hypnotic</option>
-                  </select>
-                </div>
-                <div class="sketch-select">
-                  <label for="hiphopFlavor">Hip Hop</label>
-                  <select id="hiphopFlavor">
-                    <option value="Boom Bap" selected>Boom Bap</option>
-                    <option value="Lo-Fi">Lo-Fi</option>
-                    <option value="Experimental">Experimental</option>
-                  </select>
-                </div>
-                <div class="sketch-select">
-                  <label>&nbsp;</label>
-                  <button id="sketchSurprise" class="primary">Surprise Me</button>
-                </div>
+            <button id="toggleGenreSketch" class="section-toggle" aria-expanded="false" aria-controls="genreSketchBody">
+              <span>Genre Tools</span><span id="genreToggleLabel">Collapsed</span>
+            </button>
+            <div id="genreSketchBody" class="section-body collapsed">
+              <div class="preset-row">
+                <button id="sketchHouse">House</button>
+                <button id="sketchTechno">Techno</button>
+                <button id="sketchHipHop">Hip Hop</button>
               </div>
-              <div class="sketch-inline">
-                <div class="variation-meter" id="genreVariation"><span></span></div>
-                <span class="small" id="genreVariationValue">Var 0%</span>
-              </div>
-              <div class="small sketch-summary" id="genreSketchSummary">Ready.</div>
-              <div class="palette-panel" style="margin-top:10px;">
-                <div class="small">Instrument Palette (Tags)</div>
-                <div class="palette-list" id="paletteList"></div>
+              <div class="small">Experimental genre starters (Hotkeys 4/5/6)</div>
+              <div class="sketch-controls">
+                <div class="sketch-row">
+                  <div class="sketch-select">
+                    <label for="houseFlavor">House</label>
+                    <select id="houseFlavor">
+                      <option value="Deep" selected>Deep</option>
+                      <option value="Jackin'">Jackin'</option>
+                      <option value="Dub">Dub</option>
+                      <option value="Beatdown">Beatdown</option>
+                    </select>
+                  </div>
+                  <div class="sketch-select">
+                    <label for="technoFlavor">Techno</label>
+                    <select id="technoFlavor">
+                      <option value="Minimal" selected>Minimal</option>
+                      <option value="Industrial">Industrial</option>
+                      <option value="Hypnotic">Hypnotic</option>
+                    </select>
+                  </div>
+                  <div class="sketch-select">
+                    <label for="hiphopFlavor">Hip Hop</label>
+                    <select id="hiphopFlavor">
+                      <option value="Boom Bap" selected>Boom Bap</option>
+                      <option value="Lo-Fi">Lo-Fi</option>
+                      <option value="Experimental">Experimental</option>
+                    </select>
+                  </div>
+                  <div class="sketch-select">
+                    <label>&nbsp;</label>
+                    <button id="sketchSurprise" class="primary">Surprise Me</button>
+                  </div>
+                </div>
+                <div class="sketch-inline">
+                  <div class="variation-meter" id="genreVariation"><span></span></div>
+                  <span class="small" id="genreVariationValue">Var 0%</span>
+                </div>
+                <div class="small sketch-summary" id="genreSketchSummary">Ready.</div>
+                <div class="palette-panel" style="margin-top:10px;" id="palettePanel">
+                  <button id="togglePalette" class="section-toggle subtle" aria-expanded="false" aria-controls="paletteBody">
+                    <span>Instrument Palette (Tags)</span><span id="paletteToggleLabel">Collapsed</span>
+                  </button>
+                  <div id="paletteBody" class="section-body collapsed">
+                    <div class="palette-list" id="paletteList"></div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <section id="sequencer"></section>
+        <div class="sequencer-wrap">
+          <aside id="trackStrip" class="track-strip"></aside>
+          <section class="step-area">
+            <section id="sequencer"></section>
+          </section>
+        </div>
 
         <div class="bottom-controls">
-          <div class="card">
+          <div class="card" id="fadersCard">
             <h3>Track Faders</h3>
             <div class="faders" id="faders"></div>
           </div>
-          <div class="card">
+          <div class="card" id="knobsCard">
             <h3>Track Knobs</h3>
             <div class="knob-grid" id="knobs"></div>
           </div>
         </div>
       </div>
       <div class="right-col">
-        <div class="card">
+        <div class="card" id="swingCard">
           <h3>Swing</h3>
           <input id="swing" type="range" min="0" max="70" value="24" />
           <div class="small"><span id="swingValue">24</span> ms</div>
         </div>
-        <div class="card">
+        <div class="card" id="tapeCard">
           <h3>Master Tape</h3>
           <input id="tape" type="range" min="0" max="100" value="35" />
           <div class="small"><span id="tapeValue">35</span>%</div>
         </div>
-        <div class="card">
+        <div class="card" id="noiseCard">
           <h3>Noise Layer</h3>
           <input id="layer" type="range" min="0" max="100" value="35" />
           <div class="small"><span id="layerValue">35</span>% chance</div>
         </div>
-        <div class="card">
+        <div class="card" id="humanizeCard">
           <h3>Humanize</h3>
           <select id="groovePreset">
             <option value="tight">Tight</option>
@@ -631,17 +1196,17 @@
           <div class="inline"><label>Mod</label><span class="small" id="modValue">18%</span></div>
           <input id="mod" type="range" min="0" max="40" value="18" />
         </div>
-        <div class="card">
+        <div class="card" id="chaosCard">
           <h3>Max Chaos</h3>
           <input id="chaos" type="range" min="0" max="200" value="110" />
           <div class="small"><span id="chaosValue">110</span>%</div>
         </div>
-        <div class="card">
+        <div class="card" id="pressureCard">
           <h3>Pressure</h3>
           <input id="pressure" type="range" min="0" max="100" value="0" />
           <div class="small"><span id="pressureValue">0</span>%</div>
         </div>
-        <div class="card">
+        <div class="card" id="behaviorCard">
           <h3>Behavior Engine</h3>
           <label for="headroomMode">Headroom Coupling</label>
           <select id="headroomMode">
@@ -659,11 +1224,11 @@
             <option value="accent_grit">Accent = Grit</option>
             <option value="off">Off</option>
           </select>
-          <div class="inline"><label>Evolution</label><span class="small" id="evolutionAmountValue">10%</span></div>
+          <div class="inline"><label>Evolve</label><span class="small" id="evolutionAmountValue">10%</span></div>
           <input id="evolutionAmount" type="range" min="0" max="100" value="10" />
           <div class="small" id="evolutionMemoryInfo">Memory 0/4</div>
         </div>
-        <div class="card">
+        <div class="card" id="stepEditorCard">
           <h3>Step Editor</h3>
           <div class="small" id="stepLabel">No step selected (Alt+Click a step)</div>
           <div class="inline"><label>Chance</label><span class="small" id="chanceValue">100%</span></div>
@@ -718,6 +1283,7 @@
     ];
 
     const steps = 16;
+    const ALL_STEPS = Array.from({ length: steps }, (_, i) => i);
     const microOffsets = [-30, -18, -8, 0, 8, 18, 30];
 
     const sequence = tracks.map(() => Array.from({ length: steps }, () => ({
@@ -743,6 +1309,7 @@
 
     const trackState = tracks.map(() => ({
       mute: false,
+      solo: false,
       cycle: 16,
       stutter: 0.25,
       source: "sample",
@@ -976,20 +1543,24 @@
     ];
 
     const sequencer = document.getElementById("sequencer");
+    const trackStrip = document.getElementById("trackStrip");
     const trackControls = document.getElementById("trackControls");
     const faders = document.getElementById("faders");
     const knobs = document.getElementById("knobs");
 
     function buildGrid() {
       sequencer.innerHTML = "";
+      if (trackStrip) trackStrip.innerHTML = "";
       tracks.forEach((track, tIndex) => {
-        const row = document.createElement("div");
-        row.className = "row";
+        const stripRow = document.createElement("div");
+        stripRow.className = "strip-row";
+        stripRow.dataset.rowIndex = String(tIndex);
 
         const label = document.createElement("div");
-        label.className = "label";
+        label.className = "label strip-name";
         label.textContent = track.name;
-        row.appendChild(label);
+        stripRow.appendChild(label);
+        stripRow.addEventListener("click", () => setSelectedTrack(tIndex));
 
         const grid = document.createElement("div");
         grid.className = "grid";
@@ -1006,26 +1577,64 @@
           grid.appendChild(step);
         }
 
-        row.appendChild(grid);
+        const seqRow = document.createElement("div");
+        seqRow.className = "seq-row";
+        seqRow.dataset.rowIndex = String(tIndex);
+        seqRow.appendChild(grid);
 
         const mute = document.createElement("button");
-        mute.className = "mute";
-        mute.textContent = "Mute";
-        mute.addEventListener("click", () => {
+        mute.className = "mute channel-btn strip-mute";
+        mute.classList.toggle("active", trackState[tIndex].mute);
+        mute.textContent = trackState[tIndex].mute ? "Muted" : "Mute";
+        mute.addEventListener("click", (event) => {
+          event.stopPropagation();
           trackState[tIndex].mute = !trackState[tIndex].mute;
           mute.classList.toggle("active", trackState[tIndex].mute);
           mute.textContent = trackState[tIndex].mute ? "Muted" : "Mute";
         });
-        row.appendChild(mute);
+        stripRow.appendChild(mute);
+
+        const solo = document.createElement("button");
+        solo.className = "solo channel-btn strip-solo";
+        solo.classList.toggle("active", trackState[tIndex].solo);
+        solo.textContent = "Solo";
+        solo.addEventListener("click", (event) => {
+          event.stopPropagation();
+          trackState[tIndex].solo = !trackState[tIndex].solo;
+          solo.classList.toggle("active", trackState[tIndex].solo);
+          updateSoloVisuals();
+        });
+        stripRow.appendChild(solo);
 
         const colorTag = document.createElement("div");
-        colorTag.className = "label";
+        colorTag.className = "label strip-tone";
         colorTag.style.color = track.color;
         colorTag.textContent = track.tone.toUpperCase();
-        row.appendChild(colorTag);
+        stripRow.appendChild(colorTag);
 
-        sequencer.appendChild(row);
+        if (trackStrip) trackStrip.appendChild(stripRow);
+        sequencer.appendChild(seqRow);
       });
+      lockSequencerRowHeights();
+      requestAnimationFrame(lockSequencerRowHeights);
+      updateSoloVisuals();
+    }
+
+    function lockSequencerRowHeights() {
+      if (!trackStrip || !sequencer) return;
+      const stripRows = trackStrip.querySelectorAll(".strip-row");
+      const seqRows = sequencer.querySelectorAll(".seq-row");
+      const count = Math.min(stripRows.length, seqRows.length);
+      for (let i = 0; i < count; i++) {
+        const a = stripRows[i];
+        const b = seqRows[i];
+        a.style.height = "";
+        b.style.height = "";
+        const height = Math.max(a.offsetHeight, b.offsetHeight, 42);
+        const px = `${height}px`;
+        a.style.height = px;
+        b.style.height = px;
+      }
     }
 
     function buildTrackControls() {
@@ -1198,6 +1807,7 @@
         selectStep(trackIndex, stepIndex);
         return;
       }
+      setSelectedTrack(trackIndex);
       const step = sequence[trackIndex][stepIndex];
       if (event.shiftKey) {
         // Beatdown velocity variation: shift-click cycles velocity per step.
@@ -1211,6 +1821,8 @@
       element.classList.toggle("on", step.on);
       element.dataset.vel = step.on ? step.velocity.toFixed(2) : "";
       applyStepVisuals(step, element);
+      element.classList.remove("pulse");
+      requestAnimationFrame(() => element.classList.add("pulse"));
     }
 
     function tweakMicroTiming(event, trackIndex, stepIndex, element) {
@@ -1287,10 +1899,48 @@
       });
     }
 
+    function updateTrackFocus() {
+      const hasFocus = Number.isInteger(selectedTrackIndex);
+      if (trackStrip) trackStrip.classList.toggle("focus-active", hasFocus);
+      sequencer.classList.toggle("focus-active", hasFocus);
+      document.querySelectorAll(".strip-row").forEach((row) => {
+        row.classList.toggle("is-selected", Number(row.dataset.rowIndex) === selectedTrackIndex);
+      });
+      document.querySelectorAll(".seq-row").forEach((row) => {
+        row.classList.toggle("is-selected", Number(row.dataset.rowIndex) === selectedTrackIndex);
+      });
+    }
+
+    function updateSoloVisuals() {
+      const hasSolo = trackState.some((state) => state.solo);
+      document.querySelectorAll(".strip-row").forEach((row) => {
+        const idx = Number(row.dataset.rowIndex);
+        const mutedBySolo = hasSolo && !trackState[idx].solo;
+        row.classList.toggle("solo-muted", mutedBySolo);
+      });
+      document.querySelectorAll(".seq-row").forEach((row) => {
+        const idx = Number(row.dataset.rowIndex);
+        const mutedBySolo = hasSolo && !trackState[idx].solo;
+        row.classList.toggle("solo-muted", mutedBySolo);
+      });
+    }
+
+    function setSelectedTrack(trackIndex) {
+      selectedTrackIndex = trackIndex;
+      updateTrackFocus();
+      if (!selectedStep && stepLabel && tracks[trackIndex]) {
+        stepLabel.textContent = `${tracks[trackIndex].name} (T${trackIndex + 1}) • No step selected (Alt+Click a step)`;
+      }
+    }
+
     function selectStep(trackIndex, stepIndex) {
       selectedStep = { trackIndex, stepIndex };
+      setSelectedTrack(trackIndex);
+      document.querySelectorAll(".step.selected").forEach((el) => el.classList.remove("selected"));
+      const selectedEl = document.querySelector(`.step[data-track="${trackIndex}"][data-step="${stepIndex}"]`);
+      if (selectedEl) selectedEl.classList.add("selected");
       const step = sequence[trackIndex][stepIndex];
-      stepLabel.textContent = `Track ${trackIndex + 1} • Step ${stepIndex + 1}`;
+      stepLabel.textContent = `${tracks[trackIndex].name} (T${trackIndex + 1}) • Step ${stepIndex + 1}`;
       stepChance.value = step.cond.chance;
       stepEvery.value = step.cond.every;
       chanceValue.textContent = `${step.cond.chance}%`;
@@ -1346,6 +1996,7 @@
       }));
       document.querySelectorAll(".step").forEach((step) => {
         step.classList.remove("on");
+        step.classList.remove("selected");
         step.dataset.vel = "";
         step.style.transform = "";
         step.style.opacity = "";
@@ -1924,14 +2575,14 @@
       if (headroomModeValue === "collapse" && hit.track.tone === "tom") {
         out *= clamp(1 - profile.postLoad * 0.12, 0.65, 1);
       }
-      return clamp(out, 0.02, 1.5);
+      return clamp(out, 0.02, 1.1);
     }
 
     function computeVelocityCrush(baseCrush, velocity, chaosDelta) {
       if (velocityCrushModeValue === "off") return clamp(baseCrush + chaosDelta, 0, 1);
       const velNorm = clamp(velocity / 1.2, 0, 1);
       const bias = velocityCrushModeValue === "accent_grit" ? velNorm : (1 - velNorm);
-      const dynamic = bias * (0.42 + pressureAmount * 0.25);
+      const dynamic = bias * (0.28 + pressureAmount * 0.18);
       return clamp(baseCrush + dynamic + chaosDelta, 0, 1);
     }
 
@@ -1984,6 +2635,178 @@
       }
     }
 
+    function getEvolutionProfile() {
+      const name = (lastSketchName || "").toLowerCase();
+      const houseActive = document.getElementById("sketchHouse")?.classList.contains("active");
+      const technoActive = document.getElementById("sketchTechno")?.classList.contains("active");
+      const hiphopActive = document.getElementById("sketchHipHop")?.classList.contains("active");
+      if (hiphopActive || name.includes("hip hop") || name.includes("hiphop")) {
+        return {
+          coreTracks: [0, 1],
+          supportTracks: [2, 3, 4, 5, 6, 7],
+          anchors: { 0: [0, 7, 10, 13], 1: [4, 12] },
+          allowed: {
+            0: [0, 2, 5, 6, 7, 9, 10, 12, 13, 14, 15],
+            1: [4, 12, 15],
+            2: ALL_STEPS,
+            3: [4, 12, 15],
+            4: [3, 7, 11, 15],
+            5: [2, 6, 10, 14],
+            6: [0, 4, 8, 12],
+            7: [3, 6, 9, 14]
+          }
+        };
+      }
+      if (technoActive || name.includes("techno")) {
+        return {
+          coreTracks: [0, 1],
+          supportTracks: [2, 3, 4, 5, 6, 7],
+          anchors: { 0: [0, 4, 8, 12], 1: [4, 12] },
+          allowed: {
+            0: [0, 2, 4, 6, 8, 10, 12, 14, 15],
+            1: [4, 12, 15],
+            2: ALL_STEPS,
+            3: [4, 12],
+            4: [3, 7, 11, 15],
+            5: [1, 5, 9, 13],
+            6: [0, 4, 8, 12],
+            7: [2, 6, 10, 14]
+          }
+        };
+      }
+      if (houseActive || name.includes("house")) {
+        return {
+          coreTracks: [0, 1],
+          supportTracks: [2, 3, 4, 5, 6, 7],
+          anchors: { 0: [0, 4, 8, 12], 1: [4, 12] },
+          allowed: {
+            0: [0, 4, 8, 12, 15],
+            1: [4, 12, 14],
+            2: ALL_STEPS,
+            3: [4, 12],
+            4: [3, 7, 11, 15],
+            5: [2, 6, 10, 14],
+            6: [0, 4, 8, 12],
+            7: [7, 11, 15]
+          }
+        };
+      }
+      return {
+        coreTracks: [0, 1],
+        supportTracks: [2, 3, 4, 5, 6, 7],
+        anchors: { 0: [0, 8], 1: [4, 12] },
+        allowed: {
+          0: [0, 2, 4, 6, 8, 10, 12, 14],
+          1: [4, 12, 15],
+          2: ALL_STEPS,
+          3: [4, 12],
+          4: [3, 7, 11, 15],
+          5: [2, 6, 10, 14],
+          6: [0, 4, 8, 12],
+          7: [3, 7, 11, 15]
+        }
+      };
+    }
+
+    function isAnchorStep(profile, trackIndex, stepIndex) {
+      const anchors = profile.anchors?.[trackIndex] || [];
+      return anchors.includes(stepIndex);
+    }
+
+    function getMinActiveSteps(trackIndex) {
+      if (trackIndex === 0) return 2;
+      if (trackIndex === 1) return 1;
+      if (trackIndex === 2) return 2;
+      return 0;
+    }
+
+    function mutateOneEvolutionStep(profile, evolveAmount) {
+      const coreChance = 0.08 + evolveAmount * 0.18;
+      const pool = Math.random() < coreChance
+        ? [...profile.coreTracks, ...profile.supportTracks]
+        : [...profile.supportTracks];
+      const candidates = pool.filter((idx) => !sketchLocks.has(idx));
+      if (!candidates.length) return false;
+      const trackIndex = pickVariant(candidates);
+      const row = sequence[trackIndex];
+      const allowed = profile.allowed?.[trackIndex] || ALL_STEPS;
+      const active = [];
+      const inactive = [];
+      for (let s = 0; s < steps; s++) {
+        if (!allowed.includes(s)) continue;
+        if (row[s].on) active.push(s);
+        else inactive.push(s);
+      }
+      if (!active.length && !inactive.length) return false;
+
+      const op = Math.random();
+
+      // Most mutations are continuity-safe changes to existing hits.
+      if (op < 0.5 && active.length) {
+        const s = pickVariant(active);
+        const step = row[s];
+        const jitter = 0.05 + evolveAmount * 0.1;
+        step.velocity = clamp(step.velocity + randomInRange(-jitter, jitter), 0.25, 1.05);
+        if (Math.random() < 0.35) {
+          const idx = microOffsets.indexOf(step.offset);
+          const delta = Math.random() < 0.5 ? -1 : 1;
+          const next = clamp(idx + delta, 0, microOffsets.length - 1);
+          step.offset = microOffsets[next];
+        }
+        rollHumanizeForStep(step);
+        return true;
+      }
+
+      if (op < 0.72 && active.length) {
+        const from = pickVariant(active);
+        const shift = Math.random() < 0.5 ? -1 : 1;
+        const to = (from + shift + steps) % steps;
+        if (!allowed.includes(to) || row[to].on) return false;
+        if (isAnchorStep(profile, trackIndex, from) && !isAnchorStep(profile, trackIndex, to)) return false;
+        row[to] = { ...row[from] };
+        row[from] = { ...row[from], on: false };
+        return true;
+      }
+
+      if (op < 0.86 && active.length) {
+        const from = pickVariant(active);
+        if (isAnchorStep(profile, trackIndex, from)) return false;
+        if (active.length <= getMinActiveSteps(trackIndex)) return false;
+        row[from].on = false;
+        row[from].offset = 0;
+        return true;
+      }
+
+      if (!inactive.length) return false;
+      const to = pickVariant(inactive);
+      const baseVel = trackIndex === 0 ? 0.78 : trackIndex === 1 ? 0.62 : 0.42;
+      row[to].on = true;
+      row[to].velocity = clamp(baseVel + randomInRange(-0.14, 0.14), 0.2, 1.05);
+      row[to].offset = microOffsets[Math.floor(Math.random() * microOffsets.length)];
+      rollHumanizeForStep(row[to]);
+      return true;
+    }
+
+    function evolveCurrentBar() {
+      if (!isPlaying) return;
+      if (evolutionAmount <= 0) return;
+
+      const mutationChance = 0.03 + (0.04 * evolutionAmount);
+      if (Math.random() > mutationChance) return;
+
+      const profile = getEvolutionProfile();
+      const mutationBudget = 1 + Math.floor(evolutionAmount * 3);
+      let applied = 0;
+      for (let i = 0; i < mutationBudget; i++) {
+        if (mutateOneEvolutionStep(profile, evolutionAmount)) applied += 1;
+      }
+      if (!applied) return;
+
+      rollHumanizeForAllSteps();
+      refreshStepUI();
+      pushEvolutionSnapshot();
+    }
+
     function pushEvolutionSnapshot() {
       const signature = makePatternSignature();
       const divergence = getDivergenceScore(signature);
@@ -1995,10 +2818,140 @@
       return divergence;
     }
 
+    const uiState = { mode: "edit", tab: "track" };
+
+    function setupGeneratorSections() {
+      const toggleGenreSketch = document.getElementById("toggleGenreSketch");
+      const genreSketchBody = document.getElementById("genreSketchBody");
+      const genreToggleLabel = document.getElementById("genreToggleLabel");
+      const togglePalette = document.getElementById("togglePalette");
+      const paletteBody = document.getElementById("paletteBody");
+      const paletteToggleLabel = document.getElementById("paletteToggleLabel");
+
+      if (toggleGenreSketch && genreSketchBody) {
+        toggleGenreSketch.addEventListener("click", () => {
+          const expanded = toggleGenreSketch.getAttribute("aria-expanded") === "true";
+          toggleGenreSketch.setAttribute("aria-expanded", String(!expanded));
+          genreSketchBody.classList.toggle("collapsed", expanded);
+          if (genreToggleLabel) genreToggleLabel.textContent = expanded ? "Collapsed" : "Expanded";
+        });
+      }
+
+      if (togglePalette && paletteBody) {
+        togglePalette.addEventListener("click", () => {
+          const expanded = togglePalette.getAttribute("aria-expanded") === "true";
+          togglePalette.setAttribute("aria-expanded", String(!expanded));
+          paletteBody.classList.toggle("collapsed", expanded);
+          if (paletteToggleLabel) paletteToggleLabel.textContent = expanded ? "Collapsed" : "Expanded";
+        });
+      }
+    }
+
+    function setupLayoutSystem() {
+      const rightCol = document.querySelector(".right-col");
+      const trackDock = document.getElementById("trackControls");
+      const knobsCard = document.getElementById("knobsCard");
+      const bottomControls = document.querySelector(".bottom-controls");
+      if (!rightCol) return;
+
+      const contextPanel = document.createElement("div");
+      contextPanel.className = "context-panel";
+      contextPanel.innerHTML = `
+        <div class="context-tabs">
+          <button class="tab-btn active" data-tab="track">TRACK</button>
+          <button class="tab-btn" data-tab="groove">GROOVE</button>
+          <button class="tab-btn" data-tab="generator">GENERATOR</button>
+          <button class="tab-btn" data-tab="mix">MIX</button>
+        </div>
+        <div class="context-body">
+          <section class="tab-panel active" data-panel="track"></section>
+          <section class="tab-panel" data-panel="groove"></section>
+          <section class="tab-panel" data-panel="generator"></section>
+          <section class="tab-panel" data-panel="mix"></section>
+        </div>
+      `;
+
+      // Insert panel shell first, then move existing cards into tab panels.
+      // Do not clear rightCol up front or we destroy nodes required by listeners.
+      rightCol.prepend(contextPanel);
+
+      const trackPanel = contextPanel.querySelector('[data-panel="track"]');
+      const groovePanel = contextPanel.querySelector('[data-panel="groove"]');
+      const generatorPanel = contextPanel.querySelector('[data-panel="generator"]');
+      const mixPanel = contextPanel.querySelector('[data-panel="mix"]');
+
+      const moveTo = (id, panel) => {
+        const node = document.getElementById(id);
+        if (node && panel) panel.appendChild(node);
+      };
+
+      moveTo("stepEditorCard", trackPanel);
+      moveTo("behaviorCard", trackPanel);
+
+      moveTo("swingCard", groovePanel);
+      moveTo("xyCard", groovePanel);
+      moveTo("humanizeCard", groovePanel);
+      moveTo("chaosCard", groovePanel);
+      moveTo("pressureCard", groovePanel);
+      moveTo("tapeCard", groovePanel);
+      moveTo("noiseCard", groovePanel);
+
+      moveTo("quickSketchCard", generatorPanel);
+      moveTo("genreSketchCard", generatorPanel);
+
+      moveTo("fadersCard", mixPanel);
+
+      if (trackDock && knobsCard) {
+        trackDock.appendChild(knobsCard);
+      }
+      // Remove any leftover direct children except the context panel shell.
+      Array.from(rightCol.children).forEach((child) => {
+        if (child !== contextPanel) child.remove();
+      });
+      if (bottomControls && !bottomControls.children.length) {
+        bottomControls.style.display = "none";
+      }
+      setupGeneratorSections();
+    }
+
+    function setTab(tabName) {
+      const generatorBtn = document.querySelector('.tab-btn[data-tab="generator"]');
+      if (tabName === "generator" && generatorBtn && generatorBtn.style.display === "none") {
+        tabName = "track";
+      }
+      uiState.tab = tabName;
+      document.querySelectorAll(".tab-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.tab === tabName);
+      });
+      document.querySelectorAll(".tab-panel").forEach((panel) => {
+        panel.classList.toggle("active", panel.dataset.panel === tabName);
+      });
+    }
+
+    function setMode(mode) {
+      uiState.mode = mode;
+      document.body.classList.remove("mode-sketch", "mode-edit", "mode-perform");
+      document.body.classList.add(`mode-${mode}`);
+      document.querySelectorAll("[data-mode]").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.mode === mode);
+      });
+      const generatorBtn = document.querySelector('.tab-btn[data-tab="generator"]');
+      if (mode === "perform") {
+        if (generatorBtn) generatorBtn.style.display = "none";
+        if (uiState.tab === "generator") setTab("track");
+        setTab("mix");
+        return;
+      }
+      if (generatorBtn) generatorBtn.style.display = "";
+      if (mode === "sketch") setTab("generator");
+      if (mode === "edit") setTab("track");
+    }
+
     buildGrid();
     buildTrackControls();
     buildFaders();
     buildKnobs();
+    setupLayoutSystem();
     rollHumanizeForAllSteps();
 
     trackControls.addEventListener("input", (event) => {
@@ -2052,6 +3005,7 @@
     let masterGain;
     let masterCompressor;
     let masterSaturation;
+    let masterLimiter;
     let reverbImpulse;
     let isPlaying = false;
     let currentStep = 0;
@@ -2059,6 +3013,7 @@
     let nextNoteTime = 0;
     let swingDriftState = 0;
     let pulseDriftState = 0;
+    let selectedTrackIndex = 0;
     let selectedStep = null;
     let recorderNode;
     let recorderMonitor;
@@ -2155,15 +3110,22 @@
       if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         masterGain = audioContext.createGain();
-        masterGain.gain.value = 0.9;
+        masterGain.gain.value = 0.6;
 
         masterCompressor = audioContext.createDynamicsCompressor();
-        masterCompressor.threshold.value = -18;
-        masterCompressor.ratio.value = 3.5;
-        masterCompressor.attack.value = 0.01;
-        masterCompressor.release.value = 0.2;
+        masterCompressor.threshold.value = -22;
+        masterCompressor.knee.value = 10;
+        masterCompressor.ratio.value = 4.5;
+        masterCompressor.attack.value = 0.003;
+        masterCompressor.release.value = 0.16;
 
-        masterSaturation = createWaveshaper(1.1);
+        masterSaturation = createWaveshaper(0.95);
+        masterLimiter = audioContext.createDynamicsCompressor();
+        masterLimiter.threshold.value = -3;
+        masterLimiter.knee.value = 0;
+        masterLimiter.ratio.value = 20;
+        masterLimiter.attack.value = 0.001;
+        masterLimiter.release.value = 0.08;
         updateTape();
         reverbImpulse = createReverbImpulse(2.2, 2.0);
 
@@ -2204,7 +3166,9 @@
         characterPostGain.connect(energyAnalyser);
         characterPostGain
           .connect(masterCompressor)
-          .connect(masterSaturation)
+          .connect(masterSaturation);
+        masterSaturation
+          .connect(masterLimiter)
           .connect(audioContext.destination);
       }
     }
@@ -2224,7 +3188,8 @@
       };
       recorderMonitor = audioContext.createGain();
       recorderMonitor.gain.value = 0;
-      masterSaturation.connect(recorderNode);
+      const tapSource = masterLimiter || masterSaturation;
+      tapSource.connect(recorderNode);
       recorderNode.connect(recorderMonitor).connect(audioContext.destination);
     }
 
@@ -2316,7 +3281,7 @@
     }
 
     function updateTape() {
-      const amount = 1 + (Number(tape.value) / 100) * 1.4;
+      const amount = 0.9 + (Number(tape.value) / 100) * 0.9;
       masterSaturation.curve = createSaturationCurve(amount);
     }
 
@@ -2418,11 +3383,12 @@
       const tap = audioContext.createGain();
       tap.gain.value = 1;
       tap.connect(dest);
-      masterGain.connect(tap);
+      const tapSource = masterLimiter || masterSaturation || masterGain;
+      tapSource.connect(tap);
       try { recorder.start(); } catch (err) { console.error("Master resample start error:", err); }
       setTimeout(() => {
         try { recorder.stop(); } catch (err) { console.error("Master resample stop error:", err); }
-        try { masterGain.disconnect(tap); } catch (err) {}
+        try { tapSource.disconnect(tap); } catch (err) {}
         isResamplingMaster = false;
         if (resampleButton) {
           resampleButton.classList.remove("active");
@@ -2433,7 +3399,7 @@
 
     function schedule() {
       try {
-        while (nextNoteTime < audioContext.currentTime + 0.1) {
+        while (nextNoteTime < audioContext.currentTime + 0.14) {
           playStep(currentStep, nextNoteTime);
           advanceStep();
         }
@@ -2452,7 +3418,7 @@
       pulseDriftState += randomInRange(-0.03, 0.03) * humanize.pulseDrift;
       pulseDriftState = clamp(pulseDriftState, -humanize.pulseDrift, humanize.pulseDrift);
 
-      const bpm = Number(tempo.value) + pulseDriftState;
+      const bpm = Math.max(40, Number(tempo.value) + pulseDriftState);
       const secondsPerBeat = 60.0 / bpm;
       const stepDuration = secondsPerBeat / 4;
       const swingOffset = (currentStep % 2 === 1 ? (Number(swing.value) + swingDriftState) : 0) / 1000;
@@ -2462,18 +3428,23 @@
     }
 
     function playStep(stepIndex, time) {
+      if (stepIndex === 0) {
+        evolveCurrentBar();
+      }
       const stepButtons = document.querySelectorAll(`.step[data-step="${stepIndex}"]`);
       stepButtons.forEach((btn) => btn.classList.add("current"));
       setTimeout(() => stepButtons.forEach((btn) => btn.classList.remove("current")), 80);
 
-      const bpm = Number(tempo.value) + pulseDriftState;
+      const bpm = Math.max(40, Number(tempo.value) + pulseDriftState);
       const stepDuration = (60.0 / bpm) / 4;
       const timingCompression = 1 - pressureAmount * 0.25;
       const hits = [];
       let maxAccent = 0;
       let shouldTriggerCharacter = false;
+      const hasSolo = trackState.some((state) => state.solo);
 
       tracks.forEach((track, tIndex) => {
+        if (hasSolo && !trackState[tIndex].solo) return;
         if (trackState[tIndex].mute) return;
         const cycle = trackState[tIndex].cycle;
         const localStep = stepIndex % cycle;
@@ -2508,7 +3479,9 @@
           console.error("Trigger error:", err);
         }
 
-        if (Math.random() < trackState[hit.tIndex].stutter) {
+        const stutterCap = hits.length > 6 ? 0.1 : hits.length > 4 ? 0.16 : 0.25;
+        const stutterChance = Math.min(trackState[hit.tIndex].stutter, stutterCap);
+        if (Math.random() < stutterChance) {
           try {
             triggerSound(hit.track.tone, time + hit.microTime + hit.humanTime + 0.03, hit.tIndex, coupledVelocity * 0.6, hit.data, stepDuration, modDeltas);
           } catch (err) {
@@ -2521,7 +3494,7 @@
     function triggerSound(type, time, tIndex, velocity, data, stepDuration, modDeltas = null) {
       const state = trackState[tIndex];
       const layerEnergyBoost = modDeltas ? modDeltas.energyToNoise : 0;
-      const layerChance = clamp(Number(layer.value) / 100 + pressureAmount * 0.25 + layerEnergyBoost, 0, 1);
+      const layerChance = clamp(Number(layer.value) / 100 + pressureAmount * 0.15 + layerEnergyBoost * 0.5, 0, 0.65);
 
       const chaosScale = getChaosScale();
       const rawStyle = state.style || "lofi";
@@ -2557,7 +3530,7 @@
       updateTrackFx(chain, styledFilter, styledRes, styledState, clamp(lockedFx + styleProfile.fx * chaosScale, 0, 1), time);
 
       const envGain = audioContext.createGain();
-      const vel = clamp(velocity, 0.05, 1.5);
+      const vel = clamp(velocity, 0.05, 1.0);
       envGain.gain.setValueAtTime(0.0001, time);
       envGain.gain.exponentialRampToValueAtTime(vel, time + 0.01);
       envGain.gain.exponentialRampToValueAtTime(0.0001, time + styledDecay);
@@ -2957,19 +3930,23 @@ function synthDustLayer(time, output, gainAmount) {
       dry.connect(output);
       wet.connect(output);
 
-      return { input, output, filter, distortion, crusher, delay, feedback, convolver, dry, wet, lastCrush: null };
+      return { input, output, filter, distortion, crusher, delay, feedback, convolver, dry, wet, lastCrushStep: -1, lastCrushNodeUpdateTime: 0 };
     }
 
     function updateTrackFx(chain, filterCutoff, resonance, state, fxMix, time) {
       chain.filter.frequency.setValueAtTime(filterCutoff, time);
       chain.filter.Q.value = clamp(resonance, 0.1, 12);
       chain.distortion.curve = createDistortionCurve(1 + state.dist * 4);
-      if (chain.lastCrush === null || Math.abs(chain.lastCrush - state.crush) > 0.03) {
+      const crushStep = Math.round(clamp(state.crush, 0, 1) * 8);
+      const canUpdateCrusher = (time - chain.lastCrushNodeUpdateTime) > 0.08;
+      if (crushStep !== chain.lastCrushStep && canUpdateCrusher) {
+        const crushAmount = crushStep / 8;
         try { chain.crusher.disconnect(); } catch (err) {}
-        chain.crusher = createBitCrusher(state.crush);
+        chain.crusher = createBitCrusher(crushAmount);
         try { chain.filter.disconnect(); } catch (err) {}
         chain.filter.connect(chain.distortion).connect(chain.crusher).connect(chain.delay);
-        chain.lastCrush = state.crush;
+        chain.lastCrushStep = crushStep;
+        chain.lastCrushNodeUpdateTime = time;
       }
       chain.delay.delayTime.value = clamp(0.18 + state.delay * 0.25, 0.01, 0.6);
       chain.feedback.gain.value = clamp(0.2 + state.delay * 0.5, 0, 0.9);
@@ -3000,10 +3977,10 @@ function synthDustLayer(time, output, gainAmount) {
     }
 
     function createBitCrusher(amount) {
-      if (amount <= 0.01) {
+      if (amount <= 0.06) {
         return audioContext.createGain();
       }
-      const node = audioContext.createScriptProcessor(512, 1, 1);
+      const node = audioContext.createScriptProcessor(1024, 1, 1);
       const bits = Math.max(2, Math.floor(16 - amount * 12));
       const step = Math.pow(0.5, bits);
       node.onaudioprocess = (event) => {
@@ -3114,10 +4091,14 @@ function synthDustLayer(time, output, gainAmount) {
     if (sketchSurprise) sketchSurprise.addEventListener("click", () => surpriseSketch());
 
     document.querySelectorAll("[data-lock-track]").forEach((input) => {
+      const pill = input.closest(".lock-pill");
+      if (pill) pill.classList.toggle("locked", input.checked);
       input.addEventListener("change", (event) => {
         const idx = Number(event.target.dataset.lockTrack);
         if (event.target.checked) sketchLocks.add(idx);
         else sketchLocks.delete(idx);
+        const lockPill = event.target.closest(".lock-pill");
+        if (lockPill) lockPill.classList.toggle("locked", event.target.checked);
       });
     });
 
@@ -3336,7 +4317,19 @@ function synthDustLayer(time, output, gainAmount) {
       selectStep(selectedStep.trackIndex, selectedStep.stepIndex);
     });
 
+    document.addEventListener("click", (event) => {
+      const tabBtn = event.target.closest(".tab-btn");
+      if (tabBtn) setTab(tabBtn.dataset.tab);
+      const modeBtn = event.target.closest("[data-mode]");
+      if (modeBtn) setMode(modeBtn.dataset.mode);
+    });
+
+    window.addEventListener("resize", lockSequencerRowHeights);
+
     document.addEventListener("keydown", (event) => {
+      if (event.key === "Shift") {
+        document.body.classList.add("show-velocity");
+      }
       if (event.code === "Space") {
         event.preventDefault();
         if (!isPlaying) start();
@@ -3351,6 +4344,14 @@ function synthDustLayer(time, output, gainAmount) {
       if (event.key === "4") sketchHouse();
       if (event.key === "5") sketchTechno();
       if (event.key === "6") sketchHipHop();
+    });
+    document.addEventListener("keyup", (event) => {
+      if (event.key === "Shift") {
+        document.body.classList.remove("show-velocity");
+      }
+    });
+    window.addEventListener("blur", () => {
+      document.body.classList.remove("show-velocity");
     });
 
     // Initialize humanize UI with default preset.
@@ -3369,6 +4370,8 @@ function synthDustLayer(time, output, gainAmount) {
       evolutionAmountValue.textContent = `${Math.round(evolutionAmount * 100)}%`;
     }
     if (evolutionMemoryInfo) evolutionMemoryInfo.textContent = `Memory ${evolutionMemory.length}/${evolutionMemoryLimit}`;
+    setMode("edit");
+    setSelectedTrack(0);
     setVariationIndicator(quickVariation, quickVariationValue, 0);
     setVariationIndicator(genreVariation, genreVariationValue, 0);
     renderPalettePanel();
