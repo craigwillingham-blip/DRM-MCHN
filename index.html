@@ -314,6 +314,15 @@
       color: var(--accent-2);
       box-shadow: 0 0 0 2px var(--accent-2) inset;
     }
+    .tensor-toggle {
+      padding: 6px 8px;
+      font-size: 11px;
+      letter-spacing: 0.4px;
+    }
+    .tensor-toggle.active {
+      color: #8fd9ff;
+      box-shadow: 0 0 0 2px #4a84a3 inset;
+    }
     .hint {
       margin-top: 10px;
       font-size: 12px;
@@ -540,7 +549,7 @@
     .context-tabs {
       flex: 0 0 auto;
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 8px;
       margin-bottom: 10px;
     }
@@ -651,7 +660,7 @@
     }
 
     .strip-row {
-      grid-template-columns: minmax(62px, 1fr) 56px 56px 56px;
+      grid-template-columns: minmax(54px, 1fr) 50px 50px 50px 50px;
       gap: 8px;
     }
     .strip-name {
@@ -663,17 +672,18 @@
       text-overflow: ellipsis;
     }
     .strip-mute,
-    .strip-solo {
+    .strip-solo,
+    .strip-tensor {
       justify-self: center;
       align-self: center;
-      width: 56px;
+      width: 50px;
     }
     .strip-tone {
       justify-self: center;
       align-self: center;
       font-size: 11px;
       letter-spacing: 0.8px;
-      min-width: 56px;
+      min-width: 50px;
       text-align: center;
     }
 
@@ -879,7 +889,7 @@
         max-height: 46vh;
       }
       .context-tabs {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
       }
       .sequencer-wrap {
         grid-template-columns: 126px minmax(0, 1fr);
@@ -892,14 +902,15 @@
         gap: 8px;
       }
       .strip-row {
-        grid-template-columns: minmax(0, 1fr) 34px 34px 34px;
+        grid-template-columns: minmax(0, 1fr) 30px 30px 30px 30px;
         gap: 4px;
       }
       .strip-mute,
       .strip-solo,
+      .strip-tensor,
       .strip-tone {
-        width: 34px;
-        min-width: 34px;
+        width: 30px;
+        min-width: 30px;
       }
       .strip-tone {
         font-size: 9px;
@@ -949,14 +960,15 @@
         min-width: 110px;
       }
       .strip-row {
-        grid-template-columns: minmax(0, 1fr) 28px 28px 28px;
+        grid-template-columns: minmax(0, 1fr) 24px 24px 24px 24px;
         gap: 3px;
       }
       .strip-mute,
       .strip-solo,
+      .strip-tensor,
       .strip-tone {
-        width: 28px;
-        min-width: 28px;
+        width: 24px;
+        min-width: 24px;
       }
       .strip-tone {
         font-size: 8px;
@@ -1175,6 +1187,40 @@
           <input id="layer" type="range" min="0" max="100" value="35" />
           <div class="small"><span id="layerValue">35</span>% chance</div>
         </div>
+        <div class="card" id="tensorCard">
+          <h3>Tensor</h3>
+          <label class="small"><input id="tensorEnable" type="checkbox" /> Enable</label>
+          <div class="inline"><label>Blend</label><span class="small" id="tensorBlendValue">35%</span></div>
+          <input id="tensorBlend" type="range" min="0" max="100" value="35" />
+          <div class="inline"><label>Speed</label><span class="small" id="tensorSpeedValue">100%</span></div>
+          <input id="tensorSpeed" type="range" min="-200" max="200" value="100" />
+          <div class="inline"><label>Pitch</label><span class="small" id="tensorPitchValue">0 st</span></div>
+          <input id="tensorPitch" type="range" min="-12" max="12" value="0" />
+          <div class="inline"><label>Stretch</label><span class="small" id="tensorStretchValue">100%</span></div>
+          <input id="tensorStretch" type="range" min="50" max="200" value="100" />
+          <div class="inline"><label>Stop Time</label><span class="small" id="tensorStopValue">350 ms</span></div>
+          <input id="tensorStopTime" type="range" min="50" max="2000" value="350" />
+          <label for="tensorReverseMode">Reverse Mode</label>
+          <select id="tensorReverseMode">
+            <option value="off" selected>Off</option>
+            <option value="momentary">Momentary</option>
+            <option value="latch">Latch</option>
+          </select>
+          <div class="preset-row" style="margin-top:8px;">
+            <button id="tensorReverseHold">Reverse Hold</button>
+            <button id="tensorReverseLatch">Reverse Latch</button>
+          </div>
+          <label class="small"><input id="tensorFreeze" type="checkbox" /> Hold / Freeze</label>
+          <div class="inline"><label>Loop</label><span class="small" id="tensorLoopValue">1200 ms</span></div>
+          <input id="tensorLoopLength" type="range" min="250" max="9400" step="10" value="1200" />
+          <div class="inline"><label>Random Slice</label><span class="small" id="tensorRandomValue">0%</span></div>
+          <input id="tensorRandomAmount" type="range" min="0" max="100" value="0" />
+          <div class="inline"><label>Rand Trigger</label><span class="small" id="tensorTriggerValue">20%</span></div>
+          <input id="tensorRandomTrigger" type="range" min="0" max="100" value="20" />
+          <div class="inline"><label>Smooth</label><span class="small" id="tensorSmoothValue">35%</span></div>
+          <input id="tensorSmooth" type="range" min="0" max="100" value="35" />
+          <div class="small" id="tensorStatus">Tensor idle</div>
+        </div>
         <div class="card" id="humanizeCard">
           <h3>Humanize</h3>
           <select id="groovePreset">
@@ -1227,6 +1273,17 @@
           <div class="inline"><label>Evolve</label><span class="small" id="evolutionAmountValue">10%</span></div>
           <input id="evolutionAmount" type="range" min="0" max="100" value="10" />
           <div class="small" id="evolutionMemoryInfo">Memory 0/4</div>
+          <label class="small" style="margin-top:6px;"><input id="dryMode" type="checkbox" /> Dry Mode (Bypass FX)</label>
+          <label for="fxFocus">FX Focus</label>
+          <select id="fxFocus">
+            <option value="none" selected>None</option>
+            <option value="dist">Distortion</option>
+            <option value="crush">Crusher</option>
+            <option value="delay">Delay</option>
+            <option value="reverb">Reverb</option>
+            <option value="tensor">Tensor</option>
+          </select>
+          <div class="small" id="fxFocusInfo">Dry mode off</div>
         </div>
         <div class="card" id="stepEditorCard">
           <h3>Step Editor</h3>
@@ -1310,6 +1367,7 @@
     const trackState = tracks.map(() => ({
       mute: false,
       solo: false,
+      tensorEnabled: false,
       cycle: 16,
       stutter: 0.25,
       source: "sample",
@@ -1420,11 +1478,40 @@
     let headroomModeValue = "glue";
     let headroomAmountValueNum = 0.45;
     let velocityCrushModeValue = "ghost_grit";
+    let dryModeEnabled = false;
+    let fxFocusEffect = "none";
     let evolutionAmount = 0.10;
     let transientAccentBoost = 0.0;
     let previousStepLoad = 0.0;
     const evolutionMemory = [];
     const evolutionMemoryLimit = 4;
+    const tensorState = {
+      enabled: false,
+      blend: 0.35,
+      speed: 1.0,
+      pitchSemitones: 0,
+      stretch: 1.0,
+      stopTimeMs: 350,
+      reverseMode: "off",
+      reverseHeld: false,
+      reverseLatched: false,
+      freeze: false,
+      loopMs: 1200,
+      randomAmount: 0,
+      randomTrigger: 0.2,
+      smooth: 0.35,
+      writePos: 0,
+      readPos: 0,
+      currentSpeed: 1.0,
+      pitchPhase: 0,
+      bufferLen: 0,
+      sampleRate: 48000,
+      left: null,
+      right: null,
+      crossfadeSamples: 256,
+      crossfadeRemaining: 0,
+      prevReadPos: 0
+    };
 
     // Pattern banks for sketch variety.
     const POCKET_KICKS = [
@@ -1605,6 +1692,18 @@
           updateSoloVisuals();
         });
         stripRow.appendChild(solo);
+
+        const tensorToggle = document.createElement("button");
+        tensorToggle.className = "tensor-toggle channel-btn strip-tensor";
+        tensorToggle.classList.toggle("active", trackState[tIndex].tensorEnabled);
+        tensorToggle.textContent = "T";
+        tensorToggle.addEventListener("click", (event) => {
+          event.stopPropagation();
+          trackState[tIndex].tensorEnabled = !trackState[tIndex].tensorEnabled;
+          tensorToggle.classList.toggle("active", trackState[tIndex].tensorEnabled);
+          updateTensorStatus();
+        });
+        stripRow.appendChild(tensorToggle);
 
         const colorTag = document.createElement("div");
         colorTag.className = "label strip-tone";
@@ -2861,12 +2960,14 @@
           <button class="tab-btn active" data-tab="track">TRACK</button>
           <button class="tab-btn" data-tab="groove">GROOVE</button>
           <button class="tab-btn" data-tab="generator">GENERATOR</button>
+          <button class="tab-btn" data-tab="tensor">TENSOR</button>
           <button class="tab-btn" data-tab="mix">MIX</button>
         </div>
         <div class="context-body">
           <section class="tab-panel active" data-panel="track"></section>
           <section class="tab-panel" data-panel="groove"></section>
           <section class="tab-panel" data-panel="generator"></section>
+          <section class="tab-panel" data-panel="tensor"></section>
           <section class="tab-panel" data-panel="mix"></section>
         </div>
       `;
@@ -2878,6 +2979,7 @@
       const trackPanel = contextPanel.querySelector('[data-panel="track"]');
       const groovePanel = contextPanel.querySelector('[data-panel="groove"]');
       const generatorPanel = contextPanel.querySelector('[data-panel="generator"]');
+      const tensorPanel = contextPanel.querySelector('[data-panel="tensor"]');
       const mixPanel = contextPanel.querySelector('[data-panel="mix"]');
 
       const moveTo = (id, panel) => {
@@ -2899,6 +3001,7 @@
       moveTo("quickSketchCard", generatorPanel);
       moveTo("genreSketchCard", generatorPanel);
 
+      moveTo("tensorCard", tensorPanel);
       moveTo("fadersCard", mixPanel);
 
       if (trackDock && knobsCard) {
@@ -3052,9 +3155,36 @@
     const headroomAmount = document.getElementById("headroomAmount");
     const headroomAmountValue = document.getElementById("headroomAmountValue");
     const velocityCrushMode = document.getElementById("velocityCrushMode");
+    const dryMode = document.getElementById("dryMode");
+    const fxFocus = document.getElementById("fxFocus");
+    const fxFocusInfo = document.getElementById("fxFocusInfo");
     const evolutionAmountSlider = document.getElementById("evolutionAmount");
     const evolutionAmountValue = document.getElementById("evolutionAmountValue");
     const evolutionMemoryInfo = document.getElementById("evolutionMemoryInfo");
+    const tensorEnable = document.getElementById("tensorEnable");
+    const tensorBlend = document.getElementById("tensorBlend");
+    const tensorBlendValue = document.getElementById("tensorBlendValue");
+    const tensorSpeed = document.getElementById("tensorSpeed");
+    const tensorSpeedValue = document.getElementById("tensorSpeedValue");
+    const tensorPitch = document.getElementById("tensorPitch");
+    const tensorPitchValue = document.getElementById("tensorPitchValue");
+    const tensorStretch = document.getElementById("tensorStretch");
+    const tensorStretchValue = document.getElementById("tensorStretchValue");
+    const tensorStopTime = document.getElementById("tensorStopTime");
+    const tensorStopValue = document.getElementById("tensorStopValue");
+    const tensorReverseMode = document.getElementById("tensorReverseMode");
+    const tensorReverseHold = document.getElementById("tensorReverseHold");
+    const tensorReverseLatch = document.getElementById("tensorReverseLatch");
+    const tensorFreeze = document.getElementById("tensorFreeze");
+    const tensorLoopLength = document.getElementById("tensorLoopLength");
+    const tensorLoopValue = document.getElementById("tensorLoopValue");
+    const tensorRandomAmount = document.getElementById("tensorRandomAmount");
+    const tensorRandomValue = document.getElementById("tensorRandomValue");
+    const tensorRandomTrigger = document.getElementById("tensorRandomTrigger");
+    const tensorTriggerValue = document.getElementById("tensorTriggerValue");
+    const tensorSmooth = document.getElementById("tensorSmooth");
+    const tensorSmoothValue = document.getElementById("tensorSmoothValue");
+    const tensorStatus = document.getElementById("tensorStatus");
     const sketchGroove = document.getElementById("sketchGroove");
     const sketchDensity = document.getElementById("sketchDensity");
     const sketchAccent = document.getElementById("sketchAccent");
@@ -3106,6 +3236,171 @@
     const exportWavButton = document.getElementById("exportWav");
     const recordStatus = document.getElementById("recordStatus");
 
+    function wrapIndex(index, len) {
+      let out = index % len;
+      if (out < 0) out += len;
+      return out;
+    }
+
+    function readRingSample(buffer, pos) {
+      const len = buffer.length;
+      const a = Math.floor(pos);
+      const b = wrapIndex(a + 1, len);
+      const frac = pos - a;
+      const av = buffer[wrapIndex(a, len)] || 0;
+      const bv = buffer[b] || 0;
+      return av + (bv - av) * frac;
+    }
+
+    function findZeroCrossingInTensor(center, radius) {
+      if (!tensorState.left || !tensorState.right || tensorState.bufferLen < 8) return center;
+      const len = tensorState.bufferLen;
+      const search = Math.max(8, Math.floor(radius));
+      let bestPos = center;
+      let bestScore = Number.POSITIVE_INFINITY;
+      for (let i = -search; i <= search; i++) {
+        const p = wrapIndex(center + i, len);
+        const p1 = wrapIndex(p + 1, len);
+        const a = 0.5 * (tensorState.left[p] + tensorState.right[p]);
+        const b = 0.5 * (tensorState.left[p1] + tensorState.right[p1]);
+        const score = Math.abs(a) + Math.abs(b) + Math.abs(a - b) * 0.6;
+        if (score < bestScore) {
+          bestScore = score;
+          bestPos = p;
+        }
+      }
+      return bestPos;
+    }
+
+    function ensureTensorBuffer(sampleRate) {
+      if (!sampleRate) return;
+      const targetLen = Math.max(1024, Math.floor(sampleRate * 9.4));
+      if (tensorState.left && tensorState.bufferLen === targetLen && tensorState.sampleRate === sampleRate) return;
+      tensorState.sampleRate = sampleRate;
+      tensorState.bufferLen = targetLen;
+      tensorState.left = new Float32Array(targetLen);
+      tensorState.right = new Float32Array(targetLen);
+      tensorState.writePos = 0;
+      tensorState.readPos = targetLen / 2;
+      tensorState.prevReadPos = tensorState.readPos;
+      tensorState.pitchPhase = 0;
+      tensorState.currentSpeed = tensorState.speed || 1.0;
+    }
+
+    function getTensorTargetSpeed() {
+      let target = tensorState.speed;
+      if (tensorState.reverseMode === "momentary" && tensorState.reverseHeld) {
+        target = -Math.abs(target || 1);
+      }
+      if (tensorState.reverseMode === "latch" && tensorState.reverseLatched) {
+        target = -Math.abs(target || 1);
+      }
+      return target;
+    }
+
+    function updateTensorStatus() {
+      if (!tensorStatus) return;
+      const direction = tensorState.currentSpeed >= 0 ? "FWD" : "REV";
+      const freeze = tensorState.freeze ? "FREEZE" : "LIVE";
+      const loopMs = Math.round(tensorState.loopMs);
+      const blend = Math.round(tensorState.blend * 100);
+      const activeTracks = trackState.filter((track) => track.tensorEnabled).length;
+      tensorStatus.textContent = tensorState.enabled
+        ? `${freeze} • ${direction} • ${loopMs}ms • Wet ${blend}% • Tracks ${activeTracks}`
+        : "Tensor idle";
+    }
+
+    function createTensorProcessor(trackIndex) {
+      const runtime = {
+        writePos: 0,
+        readPos: 0,
+        currentSpeed: 1,
+        pitchPhase: 0,
+        bufferLen: 0,
+        sampleRate: 48000,
+        data: null,
+        crossfadeSamples: 128,
+        crossfadeRemaining: 0,
+        prevReadPos: 0
+      };
+      const node = audioContext.createScriptProcessor(1024, 1, 1);
+      node.onaudioprocess = (event) => {
+        const sampleRate = event.inputBuffer.sampleRate || audioContext.sampleRate;
+        const targetLen = Math.max(1024, Math.floor(sampleRate * 4.7));
+        if (!runtime.data || runtime.bufferLen !== targetLen || runtime.sampleRate !== sampleRate) {
+          runtime.sampleRate = sampleRate;
+          runtime.bufferLen = targetLen;
+          runtime.data = new Float32Array(targetLen);
+          runtime.writePos = 0;
+          runtime.readPos = targetLen / 2;
+          runtime.prevReadPos = runtime.readPos;
+          runtime.pitchPhase = 0;
+          runtime.currentSpeed = tensorState.speed || 1.0;
+        }
+        const inL = event.inputBuffer.getChannelData(0);
+        const outL = event.outputBuffer.getChannelData(0);
+        const len = runtime.bufferLen;
+        const loopSamples = clamp(Math.floor((tensorState.loopMs / 1000) * sampleRate), 256, len - 1);
+        const smoothSamples = Math.max(24, Math.floor(24 + tensorState.smooth * 640));
+        const trackTensorEnabled = trackState[trackIndex] ? trackState[trackIndex].tensorEnabled : false;
+        const focusAllowsTensor = dryModeEnabled ? fxFocusEffect === "tensor" : (tensorState.enabled && trackTensorEnabled);
+
+        if (focusAllowsTensor && !tensorState.freeze) {
+          const triggerProb = clamp(tensorState.randomTrigger * (0.1 + tensorState.randomAmount * 0.9), 0, 1);
+          if (Math.random() < triggerProb * 0.25) {
+            const candidate = wrapIndex(runtime.writePos - Math.floor(Math.random() * loopSamples), len);
+            const snapped = wrapIndex(candidate, len);
+            runtime.prevReadPos = runtime.readPos;
+            runtime.readPos = snapped;
+            runtime.crossfadeRemaining = smoothSamples;
+          }
+        }
+
+        for (let i = 0; i < inL.length; i++) {
+          const dryL = inL[i];
+          runtime.data[runtime.writePos] = dryL;
+
+          if (!focusAllowsTensor) {
+            outL[i] = dryL;
+            runtime.writePos = wrapIndex(runtime.writePos + 1, len);
+            continue;
+          }
+
+          const targetSpeed = getTensorTargetSpeed();
+          const stopSamples = Math.max(1, Math.floor((tensorState.stopTimeMs / 1000) * sampleRate));
+          runtime.currentSpeed += (targetSpeed - runtime.currentSpeed) / stopSamples;
+          const timeSpeed = tensorState.freeze ? 0 : (runtime.currentSpeed * tensorState.stretch);
+          runtime.readPos = wrapIndex(runtime.readPos + timeSpeed, len);
+
+          const behind = wrapIndex(runtime.writePos - runtime.readPos, len);
+          if (behind > loopSamples) {
+            runtime.readPos = wrapIndex(runtime.writePos - Math.floor(loopSamples * 0.5), len);
+          }
+
+          const pitchFactor = Math.pow(2, tensorState.pitchSemitones / 12);
+          runtime.pitchPhase += (pitchFactor - 1) * 0.15;
+          runtime.pitchPhase = clamp(runtime.pitchPhase, -loopSamples * 0.25, loopSamples * 0.25);
+          const srcPos = wrapIndex(runtime.readPos + runtime.pitchPhase, len);
+
+          let wetL = readRingSample(runtime.data, srcPos);
+          if (runtime.crossfadeRemaining > 0) {
+            const t = 1 - (runtime.crossfadeRemaining / smoothSamples);
+            const prevPos = wrapIndex(runtime.prevReadPos + timeSpeed, len);
+            const prevL = readRingSample(runtime.data, prevPos);
+            wetL = prevL + (wetL - prevL) * t;
+            runtime.prevReadPos = prevPos;
+            runtime.crossfadeRemaining -= 1;
+          }
+
+          const wetAmt = tensorState.blend;
+          const dryAmt = 1 - wetAmt;
+          outL[i] = dryL * dryAmt + wetL * wetAmt;
+          runtime.writePos = wrapIndex(runtime.writePos + 1, len);
+        }
+      };
+      return node;
+    }
+
     function initAudio() {
       if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -3149,10 +3444,10 @@
         energyAnalyser.fftSize = 256;
         energyData = new Float32Array(energyAnalyser.fftSize);
 
-        trackState.forEach((track) => {
+        trackState.forEach((track, index) => {
           track.trackOut = audioContext.createGain();
           track.trackOut.gain.value = track.volume;
-          track.fxNodes = createTrackFxNodes();
+          track.fxNodes = createTrackFxNodes(index);
           track.fxNodes.output.connect(track.trackOut);
           track.trackOut.connect(masterGain);
         });
@@ -3281,7 +3576,8 @@
     }
 
     function updateTape() {
-      const amount = 0.9 + (Number(tape.value) / 100) * 0.9;
+      const tapeValueNorm = dryModeEnabled ? 0 : Number(tape.value);
+      const amount = 0.9 + (tapeValueNorm / 100) * 0.9;
       masterSaturation.curve = createSaturationCurve(amount);
     }
 
@@ -3494,7 +3790,7 @@
     function triggerSound(type, time, tIndex, velocity, data, stepDuration, modDeltas = null) {
       const state = trackState[tIndex];
       const layerEnergyBoost = modDeltas ? modDeltas.energyToNoise : 0;
-      const layerChance = clamp(Number(layer.value) / 100 + pressureAmount * 0.15 + layerEnergyBoost * 0.5, 0, 0.65);
+      const layerChance = dryModeEnabled ? 0 : clamp(Number(layer.value) / 100 + pressureAmount * 0.15 + layerEnergyBoost * 0.5, 0, 0.65);
 
       const chaosScale = getChaosScale();
       const rawStyle = state.style || "lofi";
@@ -3905,8 +4201,9 @@ function synthDustLayer(time, output, gainAmount) {
       }
     }
 
-    function createTrackFxNodes() {
+    function createTrackFxNodes(trackIndex) {
       const input = audioContext.createGain();
+      const tensor = createTensorProcessor(trackIndex);
       const filter = audioContext.createBiquadFilter();
       filter.type = "lowpass";
 
@@ -3925,19 +4222,30 @@ function synthDustLayer(time, output, gainAmount) {
       const wet = audioContext.createGain();
 
       const output = audioContext.createGain();
-      input.connect(dry);
-      input.connect(filter).connect(distortion).connect(crusher).connect(delay).connect(convolver).connect(wet);
+      input.connect(tensor);
+      tensor.connect(dry);
+      tensor.connect(filter).connect(distortion).connect(crusher).connect(delay).connect(convolver).connect(wet);
       dry.connect(output);
       wet.connect(output);
 
-      return { input, output, filter, distortion, crusher, delay, feedback, convolver, dry, wet, lastCrushStep: -1, lastCrushNodeUpdateTime: 0 };
+      return { input, output, tensor, filter, distortion, crusher, delay, feedback, convolver, dry, wet, trackIndex, lastCrushStep: -1, lastCrushNodeUpdateTime: 0 };
     }
 
     function updateTrackFx(chain, filterCutoff, resonance, state, fxMix, time) {
-      chain.filter.frequency.setValueAtTime(filterCutoff, time);
-      chain.filter.Q.value = clamp(resonance, 0.1, 12);
-      chain.distortion.curve = createDistortionCurve(1 + state.dist * 4);
-      const crushStep = Math.round(clamp(state.crush, 0, 1) * 8);
+      const focused = dryModeEnabled ? fxFocusEffect : "all";
+      const bypassAll = dryModeEnabled && focused === "none";
+      const useDist = focused === "all" ? state.dist : (focused === "dist" ? state.dist : 0);
+      const useCrush = focused === "all" ? state.crush : (focused === "crush" ? state.crush : 0);
+      const useDelay = focused === "all" ? state.delay : (focused === "delay" ? state.delay : 0);
+      const useReverb = focused === "all" ? state.reverb : (focused === "reverb" ? state.reverb : 0);
+      const useFxMix = bypassAll ? 0 : (focused === "all" ? fxMix : 0.95);
+      const cutoff = bypassAll ? 8000 : filterCutoff;
+      const q = bypassAll ? 0.1 : clamp(resonance, 0.1, 12);
+
+      chain.filter.frequency.setValueAtTime(cutoff, time);
+      chain.filter.Q.value = q;
+      chain.distortion.curve = createDistortionCurve(1 + useDist * 4);
+      const crushStep = Math.round(clamp(useCrush, 0, 1) * 8);
       const canUpdateCrusher = (time - chain.lastCrushNodeUpdateTime) > 0.08;
       if (crushStep !== chain.lastCrushStep && canUpdateCrusher) {
         const crushAmount = crushStep / 8;
@@ -3948,11 +4256,11 @@ function synthDustLayer(time, output, gainAmount) {
         chain.lastCrushStep = crushStep;
         chain.lastCrushNodeUpdateTime = time;
       }
-      chain.delay.delayTime.value = clamp(0.18 + state.delay * 0.25, 0.01, 0.6);
-      chain.feedback.gain.value = clamp(0.2 + state.delay * 0.5, 0, 0.9);
+      chain.delay.delayTime.value = clamp(0.18 + useDelay * 0.25, 0.01, 0.6);
+      chain.feedback.gain.value = clamp(0.2 + useDelay * 0.5, 0, 0.9);
       chain.convolver.buffer = reverbImpulse;
-      chain.dry.gain.value = 1 - fxMix;
-      chain.wet.gain.value = fxMix;
+      chain.dry.gain.value = 1 - useFxMix;
+      chain.wet.gain.value = useFxMix * (0.5 + useReverb * 0.5);
     }
 
     function createReverbImpulse(duration, decay) {
@@ -4203,6 +4511,95 @@ function synthDustLayer(time, output, gainAmount) {
       });
     }
 
+    function updateFxFocusInfo() {
+      if (!fxFocusInfo) return;
+      if (!dryModeEnabled) {
+        fxFocusInfo.textContent = "Dry mode off";
+        return;
+      }
+      fxFocusInfo.textContent = fxFocusEffect === "none"
+        ? "All effects bypassed"
+        : `Auditioning: ${fxFocusEffect.toUpperCase()}`;
+    }
+    if (dryMode) {
+      dryMode.addEventListener("change", () => {
+        dryModeEnabled = dryMode.checked;
+        updateFxFocusInfo();
+        if (masterSaturation) updateTape();
+      });
+    }
+    if (fxFocus) {
+      fxFocus.addEventListener("change", () => {
+        fxFocusEffect = fxFocus.value;
+        updateFxFocusInfo();
+      });
+    }
+
+    function syncTensorStateFromUI() {
+      if (tensorEnable) tensorState.enabled = tensorEnable.checked;
+      if (tensorBlend) tensorState.blend = clamp(Number(tensorBlend.value) / 100, 0, 1);
+      if (tensorSpeed) tensorState.speed = clamp(Number(tensorSpeed.value) / 100, -2, 2);
+      if (tensorPitch) tensorState.pitchSemitones = clamp(Number(tensorPitch.value), -12, 12);
+      if (tensorStretch) tensorState.stretch = clamp(Number(tensorStretch.value) / 100, 0.5, 2);
+      if (tensorStopTime) tensorState.stopTimeMs = clamp(Number(tensorStopTime.value), 50, 2000);
+      if (tensorReverseMode) tensorState.reverseMode = tensorReverseMode.value;
+      if (tensorFreeze) tensorState.freeze = tensorFreeze.checked;
+      if (tensorLoopLength) tensorState.loopMs = clamp(Number(tensorLoopLength.value), 250, 9400);
+      if (tensorRandomAmount) tensorState.randomAmount = clamp(Number(tensorRandomAmount.value) / 100, 0, 1);
+      if (tensorRandomTrigger) tensorState.randomTrigger = clamp(Number(tensorRandomTrigger.value) / 100, 0, 1);
+      if (tensorSmooth) tensorState.smooth = clamp(Number(tensorSmooth.value) / 100, 0, 1);
+      updateTensorStatus();
+    }
+
+    function syncTensorValueLabels() {
+      if (tensorBlendValue && tensorBlend) tensorBlendValue.textContent = `${tensorBlend.value}%`;
+      if (tensorSpeedValue && tensorSpeed) tensorSpeedValue.textContent = `${tensorSpeed.value}%`;
+      if (tensorPitchValue && tensorPitch) tensorPitchValue.textContent = `${tensorPitch.value} st`;
+      if (tensorStretchValue && tensorStretch) tensorStretchValue.textContent = `${tensorStretch.value}%`;
+      if (tensorStopValue && tensorStopTime) tensorStopValue.textContent = `${tensorStopTime.value} ms`;
+      if (tensorLoopValue && tensorLoopLength) tensorLoopValue.textContent = `${tensorLoopLength.value} ms`;
+      if (tensorRandomValue && tensorRandomAmount) tensorRandomValue.textContent = `${tensorRandomAmount.value}%`;
+      if (tensorTriggerValue && tensorRandomTrigger) tensorTriggerValue.textContent = `${tensorRandomTrigger.value}%`;
+      if (tensorSmoothValue && tensorSmooth) tensorSmoothValue.textContent = `${tensorSmooth.value}%`;
+    }
+
+    if (tensorEnable) tensorEnable.addEventListener("change", syncTensorStateFromUI);
+    if (tensorBlend) tensorBlend.addEventListener("input", () => { syncTensorValueLabels(); syncTensorStateFromUI(); });
+    if (tensorSpeed) tensorSpeed.addEventListener("input", () => { syncTensorValueLabels(); syncTensorStateFromUI(); });
+    if (tensorPitch) tensorPitch.addEventListener("input", () => { syncTensorValueLabels(); syncTensorStateFromUI(); });
+    if (tensorStretch) tensorStretch.addEventListener("input", () => { syncTensorValueLabels(); syncTensorStateFromUI(); });
+    if (tensorStopTime) tensorStopTime.addEventListener("input", () => { syncTensorValueLabels(); syncTensorStateFromUI(); });
+    if (tensorReverseMode) tensorReverseMode.addEventListener("change", syncTensorStateFromUI);
+    if (tensorFreeze) tensorFreeze.addEventListener("change", syncTensorStateFromUI);
+    if (tensorLoopLength) tensorLoopLength.addEventListener("input", () => { syncTensorValueLabels(); syncTensorStateFromUI(); });
+    if (tensorRandomAmount) tensorRandomAmount.addEventListener("input", () => { syncTensorValueLabels(); syncTensorStateFromUI(); });
+    if (tensorRandomTrigger) tensorRandomTrigger.addEventListener("input", () => { syncTensorValueLabels(); syncTensorStateFromUI(); });
+    if (tensorSmooth) tensorSmooth.addEventListener("input", () => { syncTensorValueLabels(); syncTensorStateFromUI(); });
+
+    if (tensorReverseHold) {
+      const holdStart = () => {
+        tensorState.reverseHeld = true;
+        if (tensorReverseMode && tensorReverseMode.value !== "momentary") tensorReverseMode.value = "momentary";
+        syncTensorStateFromUI();
+      };
+      const holdEnd = () => {
+        tensorState.reverseHeld = false;
+        syncTensorStateFromUI();
+      };
+      tensorReverseHold.addEventListener("pointerdown", holdStart);
+      tensorReverseHold.addEventListener("pointerup", holdEnd);
+      tensorReverseHold.addEventListener("pointerleave", holdEnd);
+      tensorReverseHold.addEventListener("pointercancel", holdEnd);
+    }
+    if (tensorReverseLatch) {
+      tensorReverseLatch.addEventListener("click", () => {
+        tensorState.reverseLatched = !tensorState.reverseLatched;
+        tensorReverseLatch.classList.toggle("active", tensorState.reverseLatched);
+        if (tensorReverseMode && tensorReverseMode.value !== "latch") tensorReverseMode.value = "latch";
+        syncTensorStateFromUI();
+      });
+    }
+
     function setXYFromValues() {
       const x = mapRange(Number(swing.value), 0, 70, 0, 100);
       const y = mapRange(humanize.looseness, 0, 40, 0, 100);
@@ -4369,6 +4766,11 @@ function synthDustLayer(time, output, gainAmount) {
       evolutionAmount = Number(evolutionAmountSlider.value) / 100;
       evolutionAmountValue.textContent = `${Math.round(evolutionAmount * 100)}%`;
     }
+    syncTensorValueLabels();
+    syncTensorStateFromUI();
+    if (dryMode) dryModeEnabled = dryMode.checked;
+    if (fxFocus) fxFocusEffect = fxFocus.value;
+    updateFxFocusInfo();
     if (evolutionMemoryInfo) evolutionMemoryInfo.textContent = `Memory ${evolutionMemory.length}/${evolutionMemoryLimit}`;
     setMode("edit");
     setSelectedTrack(0);
