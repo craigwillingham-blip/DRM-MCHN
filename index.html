@@ -261,6 +261,42 @@
       letter-spacing: 1px;
       color: var(--muted);
     }
+    .group-label {
+      margin: 10px 0 6px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.1px;
+      color: #8aa3b6;
+      opacity: 0.9;
+    }
+    .stress-wrap {
+      display: grid;
+      grid-template-columns: 16px 1fr;
+      gap: 8px;
+      align-items: end;
+      margin: 8px 0 10px;
+    }
+    .stress-meter {
+      height: 72px;
+      border: 1px solid #2b3a48;
+      background: #0f151c;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+    .stress-fill {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 0%;
+      background: linear-gradient(180deg, #f0d26a 0%, #e59f3a 45%, #d15d4f 100%);
+      transition: height 120ms linear;
+    }
+    .stress-meta {
+      display: grid;
+      gap: 2px;
+    }
     input[type="range"], select {
       width: 100%;
     }
@@ -1265,6 +1301,14 @@
         </div>
         <div class="card" id="behaviorCard">
           <h3>Behavior Engine</h3>
+          <div class="stress-wrap">
+            <div class="stress-meter"><div class="stress-fill" id="stressFill"></div></div>
+            <div class="stress-meta">
+              <div class="small">System Stress</div>
+              <div class="small" id="stressText">0%</div>
+            </div>
+          </div>
+          <div class="group-label">Body</div>
           <label for="headroomMode">Headroom Coupling</label>
           <select id="headroomMode">
             <option value="off">Off</option>
@@ -1275,12 +1319,16 @@
           </select>
           <div class="inline"><label>Coupling</label><span class="small" id="headroomAmountValue">45%</span></div>
           <input id="headroomAmount" type="range" min="0" max="100" value="45" />
+          <div class="small" id="densityReactInfo">Density React 65%</div>
+          <div class="small" id="sagInfo">Sag 0c</div>
+          <div class="group-label">Tone</div>
           <label for="velocityCrushMode">Velocity Bit-Depth</label>
           <select id="velocityCrushMode">
             <option value="ghost_grit" selected>Ghost = Grit</option>
             <option value="accent_grit">Accent = Grit</option>
             <option value="off">Off</option>
           </select>
+          <div class="group-label">Mind</div>
           <div class="inline"><label>Evolve</label><span class="small" id="evolutionAmountValue">10%</span></div>
           <input id="evolutionAmount" type="range" min="0" max="100" value="10" />
           <div class="small" id="evolutionMemoryInfo">Memory 0/4</div>
@@ -1494,6 +1542,34 @@
     let evolutionAmount = 0.10;
     let transientAccentBoost = 0.0;
     let previousStepLoad = 0.0;
+    let longDrift = 0;
+    const densityReactAmount = 0.65;
+    let kickTransientBoost = 1.0;
+    let preSaturationDrive = 1.0;
+    // ===== Stress / Heat State (0..1) =====
+    const behavior = {
+      // inputs (smoothed)
+      energy: 0,    // 0..1 (you already compute energyValue elsewhere)
+      density: 0,   // 0..1 (hits this step, smoothed)
+      cluster: 0,   // 0..1 (tight hit spacing, smoothed)
+      impulse: 0,   // 0..1 (max accent / transient shock)
+
+      // user controls
+      pressure: 0,  // 0..1 (mapped from slider)
+
+      // state
+      stress: 0,    // 0..1 fast
+      heat: 0,      // 0..1 slow
+
+      // derived outputs (consume anywhere)
+      timingTighten: 0,  // 0..1
+      envScale: 1,       // multiplier
+      driveScale: 1,     // multiplier
+      noiseBoost: 0,     // additive gain
+      sagCents: 0,       // negative cents
+      cutoffDroopHz: 0,  // negative Hz
+      hfDampBoost: 0     // additive damping amount
+    };
     const evolutionMemory = [];
     const evolutionMemoryLimit = 4;
     const tensorState = {
@@ -1981,9 +2057,12 @@
     }
 
     function rollHumanizeForStep(step) {
-      const chaosScale = getChaosScale();
-      step.humanOffset = randomInRange(-humanize.looseness * chaosScale, humanize.looseness * chaosScale);
-      step.humanVel = 1 + randomInRange(-humanize.velocityVar * chaosScale, humanize.velocityVar * chaosScale);
+      const chaosScale = chaosAmount("timing");
+      const densityTighten = clamp01(densityReactAmount * behavior.density);
+      const loosenessNow = humanize.looseness * (1 - 0.6 * densityTighten);
+      const velocityVarNow = humanize.velocityVar * (1 - 0.4 * densityTighten);
+      step.humanOffset = randomInRange(-loosenessNow * chaosScale, loosenessNow * chaosScale);
+      step.humanVel = 1 + randomInRange(-velocityVarNow * chaosScale, velocityVarNow * chaosScale);
       step.humanDetune = randomInRange(-humanize.detune * chaosScale, humanize.detune * chaosScale);
       step.humanMod = randomInRange(-humanize.mod * chaosScale, humanize.mod * chaosScale);
     }
@@ -2359,7 +2438,7 @@
     function applySketchParamNudges() {
       // Stronger per-sketch param variation to make sounds more distinct.
       trackState.forEach((state, index) => {
-        const chaosScale = getChaosScale();
+        const chaosScale = chaosAmount("tone");
         const pitchNudge = (Math.random() - 0.5) * 5 * chaosScale; // ±2.5 semitones
         const decayNudge = (Math.random() - 0.5) * 0.5 * chaosScale; // ±25%
         const filterNudge = (Math.random() - 0.5) * 0.5 * chaosScale; // ±25%
@@ -2402,7 +2481,7 @@
     }
 
     function pushSketchVariation(amount) {
-      const chaosScale = getChaosScale();
+      const chaosScale = chaosAmount("timing");
       const scaled = amount * chaosScale;
       // Global variation surge that hits groove + sound shaping.
       humanize.looseness = clamp(humanize.looseness + randomInRange(-12, 12) * scaled, 0, 40);
@@ -2414,13 +2493,14 @@
       updateHumanizeUI();
 
       trackState.forEach((state, index) => {
-        const extraFilter = 1 + randomInRange(-0.35, 0.35) * scaled;
-        const extraDecay = randomInRange(-0.35, 0.35) * scaled;
+        const toneChaos = chaosAmount("tone");
+        const extraFilter = 1 + randomInRange(-0.35, 0.35) * amount * toneChaos;
+        const extraDecay = randomInRange(-0.35, 0.35) * amount * toneChaos;
         state.filter = clamp(state.filter * extraFilter, 300, 8000);
         state.decay = clamp(state.decay + extraDecay, 0.08, 1.2);
-        state.dist = clamp(state.dist + randomInRange(-0.35, 0.35) * scaled, 0, 1);
-        state.crush = clamp(state.crush + randomInRange(-0.35, 0.35) * scaled, 0, 1);
-        state.lfo = clamp(state.lfo + randomInRange(-0.4, 0.4) * scaled, 0, 1);
+        state.dist = clamp(state.dist + randomInRange(-0.35, 0.35) * amount * toneChaos, 0, 1);
+        state.crush = clamp(state.crush + randomInRange(-0.35, 0.35) * amount * toneChaos, 0, 1);
+        state.lfo = clamp(state.lfo + randomInRange(-0.4, 0.4) * amount * toneChaos, 0, 1);
         updateTrackParam(index, "filter", state.filter);
         updateTrackParam(index, "decay", state.decay * 100);
         updateTrackParam(index, "dist", state.dist * 100);
@@ -2459,7 +2539,7 @@
     }
 
     function randomizeHumanizeDials(amount) {
-      const chaosScale = getChaosScale();
+      const chaosScale = chaosAmount("timing");
       const scaled = amount * chaosScale;
       humanize.looseness = clamp(humanize.looseness + randomInRange(-8, 8) * scaled, 0, 40);
       humanize.velocityVar = clamp(humanize.velocityVar + randomInRange(-0.1, 0.1) * scaled, 0, 0.4);
@@ -2524,6 +2604,115 @@
       return Math.min(Math.max(value, min), max);
     }
 
+    function clamp01(x) { return Math.max(0, Math.min(1, x)); }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function centsToRate(cents) { return Math.pow(2, cents / 1200); }
+
+    function pressureCurve(p) {
+      // safe zone until ~0.6, then ramps
+      if (p < 0.6) return 0.70 * p;
+      const t = (p - 0.6) / 0.4; // 0..1
+      return 0.42 + 0.58 * Math.pow(t, 1.8);
+    }
+
+    function getChaosNormalized() {
+      const chaosEl = document.getElementById("chaos");
+      if (!chaosEl) return 0;
+      return clamp(Number(chaosEl.value) / 200, 0, 1);
+    }
+
+    function getChaosTier() {
+      const c = getChaosNormalized();
+      if (c < 0.3) return 0;
+      if (c < 0.6) return 1;
+      if (c < 0.8) return 2;
+      return 3;
+    }
+
+    function chaosAmount(kind) {
+      const base = getChaosScale();
+      const tier = getChaosTier();
+      if (kind === "timing") return base;
+      if (kind === "tone") return tier >= 1 ? base : 0;
+      if (kind === "density") return tier >= 2 ? base : 0;
+      if (kind === "probability") return tier >= 3 ? base : 0;
+      return 0;
+    }
+
+    function couplingMultiplier(mode) {
+      switch (mode) {
+        case "punch": return 1.10;
+        case "dirt": return 1.15;
+        case "collapse": return 1.25;
+        case "glue":
+        default: return 1.00;
+      }
+    }
+
+    function updateStressHeat() {
+      // ---- INPUTS ----
+      const E = clamp01(behavior.energy);
+      const D = clamp01(behavior.density);
+      const I = clamp01(behavior.impulse);
+
+      const P_eff = pressureCurve(clamp01(behavior.pressure));
+      const K_mode = couplingMultiplier(headroomModeValue);
+
+      // ---- BASE LOAD (0..1) ----
+      // Energy dominates, density and impulse add perceived circuit load.
+      let L = 0.45 * E + 0.30 * D + 0.15 * I;
+      L = clamp01(L);
+
+      // ---- PRESSURE AMPLIFIES LOAD (identity move) ----
+      const PRESSURE_GAIN = 1.2;           // 0..~2.2x load
+      const Amp = 1 + PRESSURE_GAIN * P_eff;
+
+      let L_pushed = clamp01(L * Amp * K_mode);
+
+      // ---- STRESS TARGET ----
+      const S_target = Math.pow(L_pushed, 1.15);
+
+      // Asymmetric smoothing: fast rise, slow fall (hardware feel)
+      const alphaUp = 0.18;
+      const alphaDown = 0.06;
+      behavior.stress = (S_target > behavior.stress)
+        ? lerp(behavior.stress, S_target, alphaUp)
+        : lerp(behavior.stress, S_target, alphaDown);
+
+      behavior.stress = clamp01(behavior.stress);
+
+      // ---- HEAT (slow temperature) ----
+      const HEAT_FLOOR = 0.20;
+      const H_input = clamp01((behavior.stress - HEAT_FLOOR) / (1 - HEAT_FLOOR));
+
+      // Per-step update assumptions: ~8 steps/sec at 120bpm (16ths).
+      // These rates give "minutes-long" thermal behavior.
+      const heatRise = 0.012;
+      const heatDecay = 0.002;
+
+      behavior.heat = behavior.heat + heatRise * (H_input - behavior.heat);
+      behavior.heat = behavior.heat - heatDecay * behavior.heat;
+      behavior.heat = clamp01(behavior.heat);
+
+      // ---- DERIVED OUTPUTS (0..1 or small offsets) ----
+      const S = behavior.stress;
+      const H = behavior.heat;
+
+      behavior.timingTighten = clamp01(Math.pow(S, 1.6));
+
+      behavior.envScale = 1 + 0.35 * S + 0.25 * H;
+      behavior.driveScale = 1 + 0.45 * Math.pow(S, 1.4) + 0.20 * H;
+
+      // noise is more "heat" than "stress" (temperature rises noise floor)
+      behavior.noiseBoost = 0.006 + 0.020 * Math.pow(H, 1.7) + 0.008 * S;
+
+      // Optional outputs for later wiring (voltage sag, cutoff droop, damping)
+      const sagAmount = 0.35; // if you add a UI knob later, replace this const
+      behavior.sagCents = -Math.min(12, (2 + 8 * H + 4 * S) * sagAmount);
+      behavior.cutoffDroopHz = -(30 * S + 120 * H) * sagAmount;
+      behavior.hfDampBoost = 0.05 * S + 0.10 * H;
+    }
+
     function mapLog01(x, minHz, maxHz) {
       const minLog = Math.log(minHz);
       const maxLog = Math.log(maxHz);
@@ -2531,12 +2720,14 @@
     }
 
     function applyHfDamping(q, cutoffHz) {
-      if (q <= hfDampStartQ) {
+      const dynamicStartQ = Math.max(0.5, hfDampStartQ - behavior.hfDampBoost * 2.2);
+      const dynamicAmount = clamp(hfDampAmount + behavior.hfDampBoost, 0, 0.42);
+      if (q <= dynamicStartQ) {
         return { cutoff: cutoffHz, q1: q, q2: q * 0.85 };
       }
-      const excess = q - hfDampStartQ;
+      const excess = q - dynamicStartQ;
       const t = Math.min(1, excess / 10);
-      const dampFactor = 1 - hfDampAmount * t;
+      const dampFactor = 1 - dynamicAmount * t;
       const q1 = q;
       const q2 = q * (0.85 - 0.12 * t);
       return {
@@ -2550,14 +2741,15 @@
       if (!characterEnabled || !characterFilter1 || !characterFilter2) return;
 
       const energyHz = energyModEnabled ? (energyValue * energyModDepthHz) : 0;
-      const base = characterBaseCutoff + energyHz;
+      const driftHz = longDrift * 80;
+      const droopHz = (30 * behavior.stress + 120 * behavior.heat);
+      const base = Math.max(80, characterBaseCutoff + energyHz + driftHz - droopHz);
 
       const rand = 1 + (Math.random() * 2 - 1) * characterJitterAmount;
       lastJitter = lastJitter * 0.7 + rand * 0.3;
       const jitteredBase = base * lastJitter;
 
-      const pressureScale = 1 + pressureAmount * 0.8;
-      const envDepth = characterEnvAmount * pressureScale * accent;
+      const envDepth = characterEnvAmount * accent * behavior.envScale;
       const rawPeak = jitteredBase + envDepth;
 
       const qBoost = 0.18 * accent;
@@ -2594,11 +2786,21 @@
 
       if (characterPreGain) {
         const g = characterPreGain.gain;
-        const drivePeak = characterBaseDrive + characterDriveEnvAmount * pressureScale * accent;
+        const stage1Drive = 1 + 0.4 * behavior.stress;
+        const stage2Drive = 1 + 0.7 * behavior.stress;
+        const drivePeak = (characterBaseDrive + characterDriveEnvAmount * accent * behavior.driveScale) * stage1Drive;
         g.cancelScheduledValues(time);
         g.setValueAtTime(characterBaseDrive, time);
         g.linearRampToValueAtTime(drivePeak, time + 0.003);
         g.exponentialRampToValueAtTime(Math.max(0.001, characterBaseDrive), time + characterDriveEnvDecay);
+        if (characterPostGain) {
+          const post = characterPostGain.gain;
+          const postPeak = clamp(1 + 0.12 * (stage2Drive - 1), 1, 1.35);
+          post.cancelScheduledValues(time);
+          post.setValueAtTime(1, time);
+          post.linearRampToValueAtTime(postPeak, time + 0.004);
+          post.exponentialRampToValueAtTime(1, time + characterDriveEnvDecay);
+        }
       }
     }
 
@@ -2635,7 +2837,7 @@
     function getModMatrixDeltas(hitCount, maxAccent) {
       const densityNorm = clamp(hitCount / Math.max(1, tracks.length), 0, 1);
       const swingNorm = clamp(Number(swing.value) / 70, 0, 1);
-      const chaosNorm = clamp(getChaosScale() / 2, 0, 1);
+      const chaosNorm = clamp(chaosAmount("tone") / 2, 0, 1);
       const energyNorm = clamp(energyValue, 0, 1);
       return {
         densityToCutoff: densityNorm * 160,
@@ -2650,36 +2852,66 @@
       if (!hits.length || headroomModeValue === "off") {
         transientAccentBoost = 0;
         previousStepLoad *= 0.9;
-        return { globalGain: 1, hatDuck: 0, snareAccent: 0, postLoad: previousStepLoad };
+        kickTransientBoost = 1;
+        preSaturationDrive = 1;
+        if (masterCompressor) {
+          masterCompressor.release.value = 0.16;
+          masterCompressor.threshold.value = -22;
+        }
+        return { globalGain: 1, hatDuck: 0, snareAccent: 0, postLoad: previousStepLoad, kickTransientBoost: 1, preSaturationDrive: 1 };
       }
       const stepLoad = clamp(hits.reduce((sum, h) => sum + h.velocity, 0) / 5.5, 0, 1.6);
       const kickEnergy = hits.filter((h) => h.track.tone === "kick").reduce((sum, h) => sum + h.velocity, 0);
       const snareEnergy = hits.filter((h) => h.track.tone === "snare").reduce((sum, h) => sum + h.velocity, 0);
       const ratio = headroomAmountValueNum;
+      const stress = behavior.stress;
       let globalGain = 1;
       let hatDuck = 0;
       let snareAccent = 0;
+      let kickBoost = 1;
+      let saturationDrive = 1;
       if (headroomModeValue === "glue") {
         globalGain = 1 - stepLoad * 0.1 * ratio;
+        if (masterCompressor) {
+          masterCompressor.release.value = clamp(0.2 + 0.25 * stress, 0.05, 0.9);
+          masterCompressor.threshold.value = -22;
+        }
       } else if (headroomModeValue === "punch") {
         hatDuck = clamp(kickEnergy * 0.28 * ratio, 0, 0.45);
         snareAccent = clamp(snareEnergy * 0.18 * ratio, 0, 0.22);
+        kickBoost = 1 + 0.25 * stress;
+        if (masterCompressor) {
+          masterCompressor.release.value = 0.16;
+          masterCompressor.threshold.value = -22;
+        }
       } else if (headroomModeValue === "dirt") {
         globalGain = 1 - stepLoad * 0.18 * ratio;
         snareAccent = clamp(stepLoad * 0.15 * ratio, 0, 0.2);
+        saturationDrive = 1 + 0.4 * stress;
+        if (masterCompressor) {
+          masterCompressor.release.value = 0.18;
+          masterCompressor.threshold.value = -22;
+        }
       } else if (headroomModeValue === "collapse") {
         const collapse = clamp((stepLoad + previousStepLoad * 0.75) * 0.2 * ratio, 0, 0.35);
         globalGain = 1 - collapse;
         hatDuck = collapse * 0.7;
+        if (masterCompressor) {
+          masterCompressor.release.value = 0.22;
+          masterCompressor.threshold.value = clamp(-18 - (6 * stress), -30, -18);
+        }
       }
+      kickTransientBoost = kickBoost;
+      preSaturationDrive = saturationDrive;
       transientAccentBoost = snareAccent;
       const postLoad = clamp(previousStepLoad * 0.8 + stepLoad * 0.2, 0, 1.8);
       previousStepLoad = postLoad;
-      return { globalGain, hatDuck, snareAccent, postLoad };
+      return { globalGain, hatDuck, snareAccent, postLoad, kickTransientBoost: kickBoost, preSaturationDrive: saturationDrive };
     }
 
     function applyHeadroomToVelocity(hit, velocity, profile) {
       let out = velocity * profile.globalGain;
+      if (hit.track.tone === "kick") out *= profile.kickTransientBoost || 1;
       if (hit.track.tone === "hat" || hit.track.tone === "ride") out *= 1 - profile.hatDuck;
       if (hit.track.tone === "snare") out *= 1 + profile.snareAccent;
       if (headroomModeValue === "collapse" && hit.track.tone === "tom") {
@@ -2692,7 +2924,7 @@
       if (velocityCrushModeValue === "off") return clamp(baseCrush + chaosDelta, 0, 1);
       const velNorm = clamp(velocity / 1.2, 0, 1);
       const bias = velocityCrushModeValue === "accent_grit" ? velNorm : (1 - velNorm);
-      const dynamic = bias * (0.28 + pressureAmount * 0.18);
+      const dynamic = bias * (0.28 + behavior.stress * 0.18);
       return clamp(baseCrush + dynamic + chaosDelta, 0, 1);
     }
 
@@ -2729,7 +2961,7 @@
     }
 
     function mutateTowardDivergence(intensity = 1) {
-      const mutationCount = Math.max(1, Math.round((2 + pressureAmount * 4) * intensity));
+      const mutationCount = Math.max(1, Math.round((2 + behavior.stress * 4) * intensity));
       for (let i = 0; i < mutationCount; i++) {
         const t = Math.floor(Math.random() * tracks.length);
         if (sketchLocks.has(t)) continue;
@@ -2830,6 +3062,19 @@
       return 0;
     }
 
+    function isDownbeat(stepIndex) {
+      return stepIndex % 4 === 0;
+    }
+
+    function createGhostNote(row, stepIndex) {
+      if (!row[stepIndex] || row[stepIndex].on) return false;
+      row[stepIndex].on = true;
+      row[stepIndex].velocity = clamp(0.24 + randomInRange(-0.06, 0.08), 0.15, 0.45);
+      row[stepIndex].offset = microOffsets[Math.floor(Math.random() * microOffsets.length)];
+      rollHumanizeForStep(row[stepIndex]);
+      return true;
+    }
+
     function mutateOneEvolutionStep(profile, evolveAmount) {
       const coreChance = 0.08 + evolveAmount * 0.18;
       const pool = Math.random() < coreChance
@@ -2850,14 +3095,17 @@
       if (!active.length && !inactive.length) return false;
 
       const op = Math.random();
+      const velocityOnly = behavior.density > 0.6;
 
       // Most mutations are continuity-safe changes to existing hits.
       if (op < 0.5 && active.length) {
-        const s = pickVariant(active);
+        const safeActive = active.filter((s) => !isDownbeat(s));
+        if (!safeActive.length) return false;
+        const s = pickVariant(safeActive);
         const step = row[s];
         const jitter = 0.05 + evolveAmount * 0.1;
         step.velocity = clamp(step.velocity + randomInRange(-jitter, jitter), 0.25, 1.05);
-        if (Math.random() < 0.35) {
+        if (!velocityOnly && Math.random() < 0.35) {
           const idx = microOffsets.indexOf(step.offset);
           const delta = Math.random() < 0.5 ? -1 : 1;
           const next = clamp(idx + delta, 0, microOffsets.length - 1);
@@ -2867,19 +3115,23 @@
         return true;
       }
 
-      if (op < 0.72 && active.length) {
-        const from = pickVariant(active);
+      if (!velocityOnly && op < 0.72 && active.length) {
+        const movable = active.filter((s) => !isDownbeat(s));
+        if (!movable.length) return false;
+        const from = pickVariant(movable);
         const shift = Math.random() < 0.5 ? -1 : 1;
         const to = (from + shift + steps) % steps;
-        if (!allowed.includes(to) || row[to].on) return false;
+        if (isDownbeat(to) || !allowed.includes(to) || row[to].on) return false;
         if (isAnchorStep(profile, trackIndex, from) && !isAnchorStep(profile, trackIndex, to)) return false;
         row[to] = { ...row[from] };
         row[from] = { ...row[from], on: false };
         return true;
       }
 
-      if (op < 0.86 && active.length) {
-        const from = pickVariant(active);
+      if (!velocityOnly && op < 0.86 && active.length) {
+        const removable = active.filter((s) => !isDownbeat(s));
+        if (!removable.length) return false;
+        const from = pickVariant(removable);
         if (isAnchorStep(profile, trackIndex, from)) return false;
         if (active.length <= getMinActiveSteps(trackIndex)) return false;
         row[from].on = false;
@@ -2888,7 +3140,12 @@
       }
 
       if (!inactive.length) return false;
-      const to = pickVariant(inactive);
+      const insertable = inactive.filter((s) => !isDownbeat(s));
+      if (!insertable.length) return false;
+      const to = pickVariant(insertable);
+      if (Math.random() < 0.6) {
+        return createGhostNote(row, to);
+      }
       const baseVel = trackIndex === 0 ? 0.78 : trackIndex === 1 ? 0.62 : 0.42;
       row[to].on = true;
       row[to].velocity = clamp(baseVel + randomInRange(-0.14, 0.14), 0.2, 1.05);
@@ -2997,15 +3254,26 @@
         const node = document.getElementById(id);
         if (node && panel) panel.appendChild(node);
       };
+      const addPanelLabel = (panel, text) => {
+        if (!panel) return;
+        const el = document.createElement("div");
+        el.className = "group-label";
+        el.textContent = text;
+        panel.appendChild(el);
+      };
 
       moveTo("stepEditorCard", trackPanel);
+      addPanelLabel(trackPanel, "Body / Tone / Mind");
       moveTo("behaviorCard", trackPanel);
 
+      addPanelLabel(groovePanel, "Body");
+      moveTo("pressureCard", groovePanel);
       moveTo("swingCard", groovePanel);
       moveTo("xyCard", groovePanel);
       moveTo("humanizeCard", groovePanel);
+      addPanelLabel(groovePanel, "Mind");
       moveTo("chaosCard", groovePanel);
-      moveTo("pressureCard", groovePanel);
+      addPanelLabel(groovePanel, "Tone");
       moveTo("tapeCard", groovePanel);
       moveTo("noiseCard", groovePanel);
 
@@ -3165,6 +3433,10 @@
     const headroomMode = document.getElementById("headroomMode");
     const headroomAmount = document.getElementById("headroomAmount");
     const headroomAmountValue = document.getElementById("headroomAmountValue");
+    const stressFill = document.getElementById("stressFill");
+    const stressText = document.getElementById("stressText");
+    const densityReactInfo = document.getElementById("densityReactInfo");
+    const sagInfo = document.getElementById("sagInfo");
     const velocityCrushMode = document.getElementById("velocityCrushMode");
     const dryMode = document.getElementById("dryMode");
     const fxFocus = document.getElementById("fxFocus");
@@ -3590,7 +3862,8 @@
     }
 
     function updateTape() {
-      const amount = 0.9 + (Number(tape.value) / 100) * 0.9;
+      const driftedTape = clamp((Number(tape.value) / 100) + longDrift * 0.05, 0, 1.2);
+      const amount = (0.9 + driftedTape * 0.9) * preSaturationDrive;
       masterSaturation.curve = createSaturationCurve(amount);
     }
 
@@ -3730,7 +4003,7 @@
       const bpm = Math.max(40, Number(tempo.value) + pulseDriftState);
       const secondsPerBeat = 60.0 / bpm;
       const stepDuration = secondsPerBeat / 4;
-      const swingOffset = (currentStep % 2 === 1 ? (Number(swing.value) + swingDriftState) : 0) / 1000;
+      const swingOffset = (currentStep % 2 === 1 ? (Number(swing.value) + swingDriftState + longDrift * 3) : 0) / 1000;
 
       nextNoteTime += stepDuration + swingOffset;
       currentStep = (currentStep + 1) % steps;
@@ -3738,6 +4011,8 @@
 
     function playStep(stepIndex, time) {
       if (stepIndex === 0) {
+        longDrift += randomInRange(-0.005, 0.005);
+        longDrift = clamp(longDrift, -0.15, 0.15);
         evolveCurrentBar();
       }
       const stepButtons = document.querySelectorAll(`.step[data-step="${stepIndex}"]`);
@@ -3746,11 +4021,16 @@
 
       const bpm = Math.max(40, Number(tempo.value) + pulseDriftState);
       const stepDuration = (60.0 / bpm) / 4;
-      const timingCompression = 1 - pressureAmount * 0.25;
+      let timingCompression = 1.0;
       const hits = [];
       let maxAccent = 0;
       let shouldTriggerCharacter = false;
       const hasSolo = trackState.some((state) => state.solo);
+      const probChaos = chaosAmount("probability");
+      const densityChaos = chaosAmount("density");
+      const densityTighten = clamp01(densityReactAmount * behavior.density);
+      const loosenessScale = 1 - 0.6 * densityTighten;
+      const velocityVarScale = 1 - 0.4 * densityTighten;
 
       tracks.forEach((track, tIndex) => {
         if (hasSolo && !trackState[tIndex].solo) return;
@@ -3760,20 +4040,64 @@
         if (localStep === 0) trackLoopCount[tIndex] += 1;
         const data = sequence[tIndex][localStep];
         if (!data.on) return;
-        if (Math.random() * 100 > data.cond.chance) return;
-        if (data.cond.every > 1 && (trackLoopCount[tIndex] % data.cond.every !== 0)) return;
+        const chanceJitter = (Math.random() * 2 - 1) * 22 * probChaos;
+        const chanceNow = clamp(data.cond.chance + chanceJitter, 0, 100);
+        if (Math.random() * 100 > chanceNow) return;
+        const everyNow = probChaos > 0 ? Math.max(1, data.cond.every + (Math.random() < probChaos * 0.2 ? 1 : 0)) : data.cond.every;
+        if (everyNow > 1 && (trackLoopCount[tIndex] % everyNow !== 0)) return;
 
         // Beatdown microtiming + humanize offset applied here.
-        const microTime = (data.offset / 1000) * timingCompression;
-        const humanTime = (data.humanOffset / 1000) * timingCompression;
-        const velocity = data.velocity * data.humanVel;
+        const microTime = (data.offset / 1000);
+        const humanTime = (data.humanOffset / 1000) * loosenessScale;
+        const velocity = data.velocity * (1 + (data.humanVel - 1) * velocityVarScale);
         if (velocity > maxAccent) maxAccent = velocity;
         hits.push({ track, tIndex, data, microTime, humanTime, velocity });
         shouldTriggerCharacter = true;
+        if (densityChaos > 0 && !isDownbeat(localStep) && Math.random() < 0.04 * densityChaos) {
+          hits.push({ track, tIndex, data, microTime: microTime + 0.006, humanTime, velocity: velocity * 0.45 });
+        }
       });
+
+      // ---- Behavior inputs (per step) ----
+      // Energy is already tracked elsewhere as energyValue (0..1-ish)
+      behavior.energy = clamp01(typeof energyValue !== "undefined" ? energyValue : 0);
+
+      // Density from actual triggered hits (pre-sketch-safe since you currently use hits directly)
+      const densityStep = clamp01(hits.length / 6);
+      behavior.density = lerp(behavior.density, densityStep, 0.15);
+
+      // Cluster from micro/human offsets of hits
+      let clusterStep = 0;
+      if (hits.length >= 2) {
+        const times = hits
+          .map((h) => h.microTime + h.humanTime)
+          .sort((a, b) => a - b);
+
+        let minGap = Infinity;
+        for (let i = 1; i < times.length; i++) {
+          minGap = Math.min(minGap, times[i] - times[i - 1]);
+        }
+
+        clusterStep =
+          minGap <= 0.015 ? 1 :
+          minGap <= 0.030 ? (1 - (minGap - 0.015) / 0.015) :
+          0;
+      }
+      behavior.cluster = lerp(behavior.cluster, clusterStep, 0.10);
+
+      // Impulse from strongest accent this step
+      behavior.impulse = lerp(behavior.impulse, clamp01(maxAccent), 0.35);
+
+      // Update Stress/Heat + derived outputs
+      updateStressHeat();
+      updateStressVisual();
+
+      // Now derive timing compression from behavior (caps tighten)
+      timingCompression = 1 - (0.55 * Math.pow(behavior.stress, 1.6));
 
       const modDeltas = getModMatrixDeltas(hits.length, maxAccent);
       const headroomProfile = getHeadroomStepProfile(hits);
+      if (masterSaturation) updateTape();
 
       if (shouldTriggerCharacter && hits.length > 0) {
         const scaledAccent = Math.max(0.6, Math.min(1.4, maxAccent + transientAccentBoost));
@@ -3783,16 +4107,32 @@
       hits.forEach((hit) => {
         const coupledVelocity = applyHeadroomToVelocity(hit, hit.velocity, headroomProfile);
         try {
-          triggerSound(hit.track.tone, time + hit.microTime + hit.humanTime, hit.tIndex, coupledVelocity, hit.data, stepDuration, modDeltas);
+          triggerSound(
+            hit.track.tone,
+            time + (hit.microTime + hit.humanTime) * timingCompression,
+            hit.tIndex,
+            coupledVelocity,
+            hit.data,
+            stepDuration,
+            modDeltas
+          );
         } catch (err) {
           console.error("Trigger error:", err);
         }
 
         const stutterCap = hits.length > 6 ? 0.1 : hits.length > 4 ? 0.16 : 0.25;
-        const stutterChance = Math.min(trackState[hit.tIndex].stutter, stutterCap);
+        const stutterChance = Math.min(trackState[hit.tIndex].stutter + densityChaos * 0.05, stutterCap);
         if (Math.random() < stutterChance) {
           try {
-            triggerSound(hit.track.tone, time + hit.microTime + hit.humanTime + 0.03, hit.tIndex, coupledVelocity * 0.6, hit.data, stepDuration, modDeltas);
+            triggerSound(
+              hit.track.tone,
+              time + (hit.microTime + hit.humanTime) * timingCompression + 0.03,
+              hit.tIndex,
+              coupledVelocity * 0.6,
+              hit.data,
+              stepDuration,
+              modDeltas
+            );
           } catch (err) {
             console.error("Stutter error:", err);
           }
@@ -3806,9 +4146,9 @@
       const dryAppliesToTrack = dryModeEnabled && tIndex === selectedTrackIndex;
       const layerChance = (dryAppliesToTrack && fxFocusEffect === "none")
         ? 0
-        : clamp(Number(layer.value) / 100 + pressureAmount * 0.15 + layerEnergyBoost * 0.5, 0, 0.65);
+        : clamp(Number(layer.value) / 100 + behavior.noiseBoost + layerEnergyBoost * 0.5, 0, 0.75);
 
-      const chaosScale = getChaosScale();
+      const chaosScale = chaosAmount("tone");
       const rawStyle = state.style || "lofi";
       const style = rawStyle === "random" ? pickVariant(["lofi", "metallic", "dirty", "soft"]) : rawStyle;
       const styleProfile = getStyleProfile(style);
@@ -4191,7 +4531,8 @@ function synthDustLayer(time, output, gainAmount) {
       }
       const source = audioContext.createBufferSource();
       source.buffer = buffer;
-      source.playbackRate.value = Math.pow(2, pitch / 12);
+      const sagRate = centsToRate(-(2 + 8 * behavior.heat));
+      source.playbackRate.value = Math.pow(2, pitch / 12) * sagRate;
       const sliceDur = buffer.duration / 16;
       const offset = clamp(slice, 0, 15) * sliceDur;
       source.connect(destination);
@@ -4204,7 +4545,8 @@ function synthDustLayer(time, output, gainAmount) {
       const sliceStart = clamp(slice, 0, 15) * sliceDur;
       const grainDur = Math.min(0.12, sliceDur * 0.8);
       const interval = grainDur * 0.5;
-      const rate = Math.pow(2, pitch / 12);
+      const sagRate = centsToRate(-(2 + 8 * behavior.heat));
+      const rate = Math.pow(2, pitch / 12) * sagRate;
       const grains = Math.max(3, Math.floor(stepDuration / interval));
       for (let i = 0; i < grains; i++) {
         const source = audioContext.createBufferSource();
@@ -4502,6 +4844,7 @@ function synthDustLayer(time, output, gainAmount) {
     if (pressure) {
       pressure.addEventListener("input", () => {
         pressureAmount = Number(pressure.value) / 100;
+        behavior.pressure = pressureAmount;
         if (pressureValue) pressureValue.textContent = Math.round(pressureAmount * 100);
       });
     }
@@ -4538,6 +4881,14 @@ function synthDustLayer(time, output, gainAmount) {
       fxFocusInfo.textContent = fxFocusEffect === "none"
         ? `Bypassed FX on ${trackName}`
         : `Auditioning ${fxFocusEffect.toUpperCase()} on ${trackName}`;
+    }
+
+    function updateStressVisual() {
+      const stressVisual = clamp01(behavior.stress * 0.7 + behavior.heat * 0.3);
+      if (stressFill) stressFill.style.height = `${Math.round(stressVisual * 100)}%`;
+      if (stressText) stressText.textContent = `${Math.round(stressVisual * 100)}%`;
+      if (densityReactInfo) densityReactInfo.textContent = `Density React ${Math.round(densityReactAmount * 100)}%`;
+      if (sagInfo) sagInfo.textContent = `Sag ${Math.round(behavior.sagCents)}c`;
     }
     if (dryMode) {
       dryMode.addEventListener("change", () => {
@@ -4773,7 +5124,11 @@ function synthDustLayer(time, output, gainAmount) {
     applyHumanizePreset("loose");
     setXYFromValues();
     if (chaos && chaosValue) chaosValue.textContent = chaos.value;
-    if (pressure && pressureValue) pressureValue.textContent = pressure.value;
+    if (pressure) {
+      pressureAmount = Number(pressure.value) / 100;
+      behavior.pressure = pressureAmount;
+      if (pressureValue) pressureValue.textContent = pressure.value;
+    }
     if (headroomMode) headroomModeValue = headroomMode.value;
     if (headroomAmount && headroomAmountValue) {
       headroomAmountValueNum = Number(headroomAmount.value) / 100;
@@ -4789,6 +5144,7 @@ function synthDustLayer(time, output, gainAmount) {
     if (dryMode) dryModeEnabled = dryMode.checked;
     if (fxFocus) fxFocusEffect = fxFocus.value;
     updateFxFocusInfo();
+    updateStressVisual();
     if (evolutionMemoryInfo) evolutionMemoryInfo.textContent = `Memory ${evolutionMemory.length}/${evolutionMemoryLimit}`;
     setMode("edit");
     setSelectedTrack(0);
