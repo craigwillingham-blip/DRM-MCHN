@@ -1715,8 +1715,34 @@
 
     const steps = 16;
     const stepsPerBeat = 4;
+    const SCHEDULE_AHEAD_SEC = 0.22;
+    const SCHEDULER_INTERVAL_MS = 25;
+    const MAX_STEPS_PER_TICK = 64;
+    const DEBUG_AUDIO = true;
     const ALL_STEPS = Array.from({ length: steps }, (_, i) => i);
     const microOffsets = [-30, -18, -8, 0, 8, 18, 30];
+
+    const audioDebug = {
+      schedulerStarts: 0,
+      schedulerStops: 0,
+      activeSchedulers: 0,
+      schedulerTicks: 0,
+      staleSchedulerTicks: 0,
+      switches: 0,
+      scheduledEvents: 0,
+      canceledEvents: 0,
+      staleEventsCanceled: 0,
+      staleEventsRegistered: 0,
+      activeVoices: 0,
+      maxActiveVoices: 0
+    };
+
+    function dbgLog(message, extra = null) {
+      if (!DEBUG_AUDIO) return;
+      if (extra) console.log(`[audio] ${message}`, extra);
+      else console.log(`[audio] ${message}`);
+    }
+    window.__drmAudioDebug = audioDebug;
 
     const sequence = tracks.map(() => Array.from({ length: steps }, () => ({
       on: false,
@@ -1846,6 +1872,7 @@
     let characterEnabled = true;
     let characterPreGain, characterPostGain;
     let characterFilter1, characterFilter2;
+    let patternSwitchGate;
     let energyAnalyser, energyData, energyTimerId = null;
 
     let characterBaseCutoff = 800;
@@ -2338,7 +2365,8 @@
       if (
         ["filter", "res", "crush", "dist", "delay", "reverb", "fx"].includes(param) &&
         audioContext &&
-        state.fxNodes
+        state.fxNodes &&
+        bulkParamDepth === 0
       ) {
         const now = audioContext.currentTime;
         updateTrackFx(
@@ -2350,6 +2378,75 @@
           now
         );
       }
+    }
+
+    function syncAllTrackFxNow() {
+      if (!audioContext) return;
+      const now = audioContext.currentTime;
+      trackState.forEach((state) => {
+        if (!state.fxNodes) return;
+        updateTrackFx(state.fxNodes, state.filter, state.resonance, state, state.fx, now);
+      });
+    }
+
+    function beginBulkParamUpdate() {
+      bulkParamDepth += 1;
+    }
+
+    function endBulkParamUpdate() {
+      if (bulkParamDepth > 0) bulkParamDepth -= 1;
+      if (bulkParamDepth === 0) syncAllTrackFxNow();
+    }
+
+    function registerVoiceNode(node, startTime, stopTime) {
+      if (!node) return;
+      node.__startTime = startTime;
+      node.__stopTime = stopTime;
+      activeVoiceNodes.add(node);
+      audioDebug.activeVoices = activeVoiceNodes.size;
+      audioDebug.maxActiveVoices = Math.max(audioDebug.maxActiveVoices, audioDebug.activeVoices);
+      const cleanup = () => {
+        activeVoiceNodes.delete(node);
+        audioDebug.activeVoices = activeVoiceNodes.size;
+      };
+      node.onended = cleanup;
+      const fallbackLifeMs = Math.max(50, ((stopTime || (startTime + 1)) - startTime + 0.25) * 1000);
+      setTimeout(cleanup, fallbackLifeMs);
+    }
+
+    function registerScheduledEventGate(gainNode, startTime, endTime, generation = switchGeneration) {
+      if (!gainNode || !Number.isFinite(startTime)) return;
+      if (generation < switchGeneration) audioDebug.staleEventsRegistered += 1;
+      const entry = {
+        gainNode,
+        startTime,
+        endTime: Number.isFinite(endTime) ? endTime : (startTime + 1.5),
+        generation
+      };
+      scheduledEventGates.add(entry);
+      audioDebug.scheduledEvents = scheduledEventGates.size;
+      const lifeMs = Math.max(60, (entry.endTime - startTime + 0.25) * 1000);
+      setTimeout(() => {
+        scheduledEventGates.delete(entry);
+        audioDebug.scheduledEvents = scheduledEventGates.size;
+      }, lifeMs);
+    }
+
+    function cancelPendingScheduledAudio(nowTime, minGeneration = switchGeneration) {
+      const now = Number.isFinite(nowTime) ? nowTime : (audioContext ? audioContext.currentTime : 0);
+      scheduledEventGates.forEach((entry) => {
+        if (entry.startTime <= now + 0.001) return;
+        if (entry.generation >= minGeneration) return;
+        try {
+          entry.gainNode.gain.cancelScheduledValues(now);
+          entry.gainNode.gain.setValueAtTime(0.0001, now);
+          entry.gainNode.disconnect();
+          scheduledEventGates.delete(entry);
+          audioDebug.canceledEvents += 1;
+          audioDebug.staleEventsCanceled += 1;
+          audioDebug.scheduledEvents = scheduledEventGates.size;
+        } catch (err) {}
+      });
     }
 
     function toggleStep(event, trackIndex, stepIndex, element) {
@@ -2908,7 +3005,7 @@
       const name = generateWhimsicalName();
       const options = [sketchPocket, sketchLurch, sketchShuffle, sketchHouse, sketchTechno, sketchHipHop];
       const fn = pickVariant(options);
-      fn();
+      requestSketchSwitch(fn, "Surprise sketch");
       updateSketchSummary(name, params, genreSketchSummary);
       lastSketchName = name;
     }
@@ -2919,23 +3016,28 @@
     }
 
     function finalizeSketch(name, params, variationAmount, summaryEl, variationMeter, variationValueEl) {
-      applyHumanizePreset(groovePreset.value);
-      applyHumanizeMode(params.humanize);
-      applySketchParamNudges();
-      applyPaletteToTrackState(0.95);
-      if (Math.random() < evolutionAmount) {
-        mutateTowardDivergence(1 + evolutionAmount * 2);
+      beginBulkParamUpdate();
+      try {
+        applyHumanizePreset(groovePreset.value);
+        applyHumanizeMode(params.humanize);
+        applySketchParamNudges();
+        applyPaletteToTrackState(0.95);
+        if (Math.random() < evolutionAmount) {
+          mutateTowardDivergence(1 + evolutionAmount * 2);
+        }
+        let divergence = getDivergenceScore(makePatternSignature());
+        if (divergence < 0.3) {
+          mutateTowardDivergence(1.5);
+        }
+        rollHumanizeForAllSteps();
+        queueUIRefresh();
+        lastSketchName = name;
+        divergence = pushEvolutionSnapshot();
+        setVariationIndicator(variationMeter, variationValueEl, variationAmount);
+        updateSketchSummary(`${name} • Div ${Math.round(divergence * 100)}%`, params, summaryEl);
+      } finally {
+        endBulkParamUpdate();
       }
-      let divergence = getDivergenceScore(makePatternSignature());
-      if (divergence < 0.3) {
-        mutateTowardDivergence(1.5);
-      }
-      rollHumanizeForAllSteps();
-      refreshStepUI();
-      lastSketchName = name;
-      divergence = pushEvolutionSnapshot();
-      setVariationIndicator(variationMeter, variationValueEl, variationAmount);
-      updateSketchSummary(`${name} • Div ${Math.round(divergence * 100)}%`, params, summaryEl);
     }
 
     function pickVariant(options) {
@@ -3103,6 +3205,14 @@
         });
       });
       syncCurrentPatternFromRuntime();
+    }
+
+    function queueUIRefresh() {
+      if (uiRefreshRaf !== null) return;
+      uiRefreshRaf = requestAnimationFrame(() => {
+        uiRefreshRaf = null;
+        refreshStepUI();
+      });
     }
 
     function fillKickPattern(stepsList) {
@@ -3940,10 +4050,16 @@
     let reverbImpulse;
     let isPlaying = false;
     let currentStep = 0;
-    let schedulerId;
+    let schedulerTimerId = null;
+    let transportRunId = 0;
     let nextNoteTime = 0;
     let swingDriftState = 0;
     let pulseDriftState = 0;
+    let bulkParamDepth = 0;
+    let uiRefreshRaf = null;
+    const scheduledEventGates = new Set();
+    const activeVoiceNodes = new Set();
+    let switchGeneration = 0;
     let selectedTrackIndex = 0;
     let selectedStep = null;
     let recorderNode;
@@ -4325,6 +4441,8 @@
 
         characterPreGain = audioContext.createGain();
         characterPreGain.gain.value = characterBaseDrive;
+        patternSwitchGate = audioContext.createGain();
+        patternSwitchGate.gain.value = 1.0;
 
         characterFilter1 = audioContext.createBiquadFilter();
         characterFilter1.type = "lowpass";
@@ -4352,6 +4470,7 @@
         });
 
         masterGain
+          .connect(patternSwitchGate)
           .connect(characterPreGain)
           .connect(characterFilter1)
           .connect(characterFilter2)
@@ -5002,16 +5121,44 @@
       }, recordLength * 1000);
     }
 
-    function schedule() {
+    function stopScheduler() {
+      if (schedulerTimerId !== null) {
+        clearInterval(schedulerTimerId);
+        schedulerTimerId = null;
+      }
+      transportRunId += 1;
+      audioDebug.schedulerStops += 1;
+      audioDebug.activeSchedulers = 0;
+      dbgLog("scheduler:stop", { runId: transportRunId, stops: audioDebug.schedulerStops });
+    }
+
+    function schedulerTick(runId) {
+      if (!isPlaying || !audioContext || runId !== transportRunId) {
+        audioDebug.staleSchedulerTicks += 1;
+        return;
+      }
       try {
-        while (nextNoteTime < audioContext.currentTime + 0.14) {
+        audioDebug.schedulerTicks += 1;
+        const horizon = audioContext.currentTime + SCHEDULE_AHEAD_SEC;
+        let scheduled = 0;
+        while (nextNoteTime < horizon && scheduled < MAX_STEPS_PER_TICK) {
           playStep(currentStep, nextNoteTime);
           advanceStep();
+          scheduled += 1;
         }
       } catch (err) {
         console.error("Scheduler error:", err);
       }
-      schedulerId = requestAnimationFrame(schedule);
+    }
+
+    function startScheduler() {
+      stopScheduler();
+      transportRunId += 1;
+      const runId = transportRunId;
+      schedulerTimerId = setInterval(() => schedulerTick(runId), SCHEDULER_INTERVAL_MS);
+      audioDebug.schedulerStarts += 1;
+      audioDebug.activeSchedulers = 1;
+      dbgLog("scheduler:start", { runId, starts: audioDebug.schedulerStarts });
     }
 
     function advanceStep() {
@@ -5310,6 +5457,7 @@
       envGain.gain.setValueAtTime(0.0001, time);
       envGain.gain.exponentialRampToValueAtTime(vel, time + 0.01);
       envGain.gain.exponentialRampToValueAtTime(0.0001, time + styledDecay);
+      registerScheduledEventGate(envGain, time, time + styledDecay + 0.12, switchGeneration);
 
       envGain.connect(chain.input);
 
@@ -5380,12 +5528,18 @@
       clickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.045);
       click.connect(clickFilter).connect(clickGain).connect(output);
 
+      const kickBodyStop = time + 1.0;
+      const kickSubStop = time + 1.0;
+      const kickClickStop = time + 0.08;
       body.start(time);
       sub.start(time);
       click.start(time);
-      body.stop(time + 1.0);
-      sub.stop(time + 1.0);
-      click.stop(time + 0.08);
+      body.stop(kickBodyStop);
+      sub.stop(kickSubStop);
+      click.stop(kickClickStop);
+      registerVoiceNode(body, time, kickBodyStop);
+      registerVoiceNode(sub, time, kickSubStop);
+      registerVoiceNode(click, time, kickClickStop);
     }
 
     function synthSnareLoFi(time, state, output) {
@@ -5423,12 +5577,16 @@
       tone2.connect(toneGain);
       toneGain.connect(output);
 
+      const snareStop = time + 0.7;
       noise.start(time);
       tone1.start(time);
       tone2.start(time);
-      noise.stop(time + 0.7);
-      tone1.stop(time + 0.7);
-      tone2.stop(time + 0.7);
+      noise.stop(snareStop);
+      tone1.stop(snareStop);
+      tone2.stop(snareStop);
+      registerVoiceNode(noise, time, snareStop);
+      registerVoiceNode(tone1, time, snareStop);
+      registerVoiceNode(tone2, time, snareStop);
     }
 
     function synthHatLoFi(time, state, output) {
@@ -5442,8 +5600,10 @@
         osc.type = "square";
         osc.frequency.setValueAtTime(base * ratio, time);
         osc.connect(mix);
+        const hatOscStop = time + 0.35;
         osc.start(time);
-        osc.stop(time + 0.35);
+        osc.stop(hatOscStop);
+        registerVoiceNode(osc, time, hatOscStop);
       });
 
       const noise = audioContext.createBufferSource();
@@ -5462,8 +5622,10 @@
 
       mix.connect(hp).connect(bp).connect(env).connect(output);
       noise.connect(hp);
+      const hatNoiseStop = time + 0.4;
       noise.start(time);
-      noise.stop(time + 0.4);
+      noise.stop(hatNoiseStop);
+      registerVoiceNode(noise, time, hatNoiseStop);
     }
 
     function synthClapLoFi(time, state, output) {
@@ -5491,8 +5653,11 @@
 
         noise.connect(filter).connect(gain).connect(output);
         noise.connect(filter).connect(slap);
-        noise.start(time + offset);
-        noise.stop(time + offset + 0.4);
+        const clapStart = time + offset;
+        const clapStop = clapStart + 0.4;
+        noise.start(clapStart);
+        noise.stop(clapStop);
+        registerVoiceNode(noise, clapStart, clapStop);
       });
     }
 
@@ -5529,12 +5694,17 @@
       clickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.06);
       click.connect(clickFilter).connect(clickGain).connect(output);
 
+      const tomStop = time + 0.9;
+      const tomClickStop = time + 0.1;
       osc.start(time);
       osc2.start(time);
       click.start(time);
-      osc.stop(time + 0.9);
-      osc2.stop(time + 0.9);
-      click.stop(time + 0.1);
+      osc.stop(tomStop);
+      osc2.stop(tomStop);
+      click.stop(tomClickStop);
+      registerVoiceNode(osc, time, tomStop);
+      registerVoiceNode(osc2, time, tomStop);
+      registerVoiceNode(click, time, tomClickStop);
     }
 
     function synthPercLoFi(time, state, output) {
@@ -5562,10 +5732,13 @@
 
       carrier.connect(band).connect(gain).connect(output);
 
+      const percStop = time + 0.6;
       carrier.start(time);
       modOsc.start(time);
-      carrier.stop(time + 0.6);
-      modOsc.stop(time + 0.6);
+      carrier.stop(percStop);
+      modOsc.stop(percStop);
+      registerVoiceNode(carrier, time, percStop);
+      registerVoiceNode(modOsc, time, percStop);
     }
 
     function synthRideLoFi(time, state, output) {
@@ -5579,8 +5752,10 @@
         osc.type = "square";
         osc.frequency.setValueAtTime(base * ratio, time);
         osc.connect(mix);
+        const rideOscStop = time + 1.2;
         osc.start(time);
-        osc.stop(time + 1.2);
+        osc.stop(rideOscStop);
+        registerVoiceNode(osc, time, rideOscStop);
       });
 
       const noise = audioContext.createBufferSource();
@@ -5599,8 +5774,10 @@
 
       mix.connect(hp).connect(bp).connect(env).connect(output);
       noise.connect(hp);
+      const rideNoiseStop = time + 1.3;
       noise.start(time);
-      noise.stop(time + 1.3);
+      noise.stop(rideNoiseStop);
+      registerVoiceNode(noise, time, rideNoiseStop);
     }
 
     function synthFxLoFi(time, state, output) {
@@ -5626,8 +5803,10 @@
       gain.gain.exponentialRampToValueAtTime(0.001, time + 0.8 + state.decay * 0.4);
 
       osc.connect(filter).connect(gain).connect(output);
+      const fxStop = time + 1.2;
       osc.start(time);
-      osc.stop(time + 1.2);
+      osc.stop(fxStop);
+      registerVoiceNode(osc, time, fxStop);
     }
 
 function synthDustLayer(time, output, gainAmount) {
@@ -5640,8 +5819,10 @@ function synthDustLayer(time, output, gainAmount) {
       gain.gain.setValueAtTime(gainAmount, time);
       gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
       noise.connect(filter).connect(gain).connect(output);
+      const dustStop = time + 0.3;
       noise.start(time);
-      noise.stop(time + 0.3);
+      noise.stop(dustStop);
+      registerVoiceNode(noise, time, dustStop);
     }
 
     function getLockedValue(step, key, fallback) {
@@ -5659,9 +5840,11 @@ function synthDustLayer(time, output, gainAmount) {
       source.playbackRate.value = Math.pow(2, pitch / 12) * sagRate;
       const sliceDur = buffer.duration / 16;
       const offset = clamp(slice, 0, 15) * sliceDur;
+      const endTime = time + Math.min(sliceDur, stepDuration) + 0.05;
       source.connect(destination);
       source.start(time, offset, Math.min(sliceDur, stepDuration));
-      source.stop(time + Math.min(sliceDur, stepDuration) + 0.05);
+      source.stop(endTime);
+      registerVoiceNode(source, time, endTime);
     }
 
     function playGranular(buffer, time, destination, pitch, slice, stretch, stepDuration) {
@@ -5677,9 +5860,12 @@ function synthDustLayer(time, output, gainAmount) {
         source.buffer = buffer;
         source.playbackRate.value = rate;
         const offset = sliceStart + (i * interval * rate) / stretch;
+        const startTime = time + i * interval;
+        const endTime = startTime + grainDur + 0.02;
         source.connect(destination);
-        source.start(time + i * interval, clamp(offset, 0, buffer.duration - grainDur), grainDur);
-        source.stop(time + i * interval + grainDur + 0.02);
+        source.start(startTime, clamp(offset, 0, buffer.duration - grainDur), grainDur);
+        source.stop(endTime);
+        registerVoiceNode(source, startTime, endTime);
       }
     }
 
@@ -5732,7 +5918,7 @@ function synthDustLayer(time, output, gainAmount) {
       chain.filter.Q.setTargetAtTime(q, time, 0.02);
       chain.distortion.curve = createDistortionCurve(1 + useDist * 4);
       const crushStep = Math.round(clamp(useCrush, 0, 1) * 8);
-      const canUpdateCrusher = (time - chain.lastCrushNodeUpdateTime) > 0.08;
+      const canUpdateCrusher = bulkParamDepth === 0 && (time - chain.lastCrushNodeUpdateTime) > 0.08;
       if (crushStep !== chain.lastCrushStep && canUpdateCrusher) {
         const crushAmount = crushStep / 8;
         try { chain.crusher.disconnect(); } catch (err) {}
@@ -5796,6 +5982,7 @@ function synthDustLayer(time, output, gainAmount) {
       lfo.connect(gain);
       lfo.start(time);
       lfo.stop(time + 0.6);
+      registerVoiceNode(lfo, time, time + 0.6);
       return gain;
     }
 
@@ -5830,6 +6017,7 @@ function synthDustLayer(time, output, gainAmount) {
     }
 
     function start() {
+      if (isPlaying) return;
       initAudio();
       if (audioContext.state === "suspended") {
         audioContext.resume();
@@ -5838,19 +6026,92 @@ function synthDustLayer(time, output, gainAmount) {
       isPlaying = true;
       currentStep = 0;
       nextNoteTime = audioContext.currentTime + 0.05;
-      schedule();
+      startScheduler();
+      dbgLog("transport:start", { activeSchedulers: audioDebug.activeSchedulers });
       playButton.textContent = "Pause";
       playButton.classList.add("active");
     }
 
     function stop() {
+      if (!isPlaying && schedulerTimerId === null) return;
       isPlaying = false;
       playButton.textContent = "Play";
       playButton.classList.remove("active");
       stopEnergyMeter();
-      if (schedulerId) {
-        cancelAnimationFrame(schedulerId);
+      stopScheduler();
+      if (audioContext) {
+        cancelPendingScheduledAudio(audioContext.currentTime, switchGeneration + 1);
       }
+      dbgLog("transport:stop", { activeSchedulers: audioDebug.activeSchedulers });
+    }
+
+    function cancelFutureVoices(now) {
+      let canceled = 0;
+      activeVoiceNodes.forEach((node) => {
+        const st = Number(node.__startTime) || 0;
+        if (st <= now + 0.001) return;
+        try {
+          node.stop(now + 0.002);
+          canceled += 1;
+        } catch (err) {}
+      });
+      return canceled;
+    }
+
+    function applyPatternSwitchAtomic(sketchFn, label) {
+      if (!sketchFn) return;
+      if (!audioContext || !isPlaying || !patternSwitchGate) {
+        switchGeneration += 1;
+        dbgLog("switch:offline", { label, generation: switchGeneration });
+        sketchFn();
+        queueUIRefresh();
+        if (label) showShortcutToast(`${label} applied`);
+        return;
+      }
+      const now = audioContext.currentTime;
+      switchGeneration += 1;
+      audioDebug.switches += 1;
+      dbgLog("switch:begin", {
+        label,
+        generation: switchGeneration,
+        activeSchedulers: audioDebug.activeSchedulers,
+        scheduledEvents: audioDebug.scheduledEvents,
+        activeVoices: audioDebug.activeVoices
+      });
+
+      patternSwitchGate.gain.cancelScheduledValues(now);
+      patternSwitchGate.gain.setValueAtTime(patternSwitchGate.gain.value, now);
+      patternSwitchGate.gain.linearRampToValueAtTime(0.0001, now + 0.01);
+
+      beginBulkParamUpdate();
+      let canceledVoices = 0;
+      try {
+        canceledVoices = cancelFutureVoices(now);
+        cancelPendingScheduledAudio(now, switchGeneration);
+        sketchFn();
+        nextNoteTime = Math.max(nextNoteTime, now + 0.012);
+      } finally {
+        endBulkParamUpdate();
+      }
+
+      patternSwitchGate.gain.setValueAtTime(0.0001, now + 0.01);
+      patternSwitchGate.gain.linearRampToValueAtTime(1, now + 0.02);
+
+      queueUIRefresh();
+      dbgLog("switch", {
+        label,
+        switches: audioDebug.switches,
+        canceledVoices,
+        staleCanceled: audioDebug.staleEventsCanceled,
+        activeSchedulers: audioDebug.activeSchedulers,
+        scheduledEvents: audioDebug.scheduledEvents,
+        activeVoices: audioDebug.activeVoices
+      });
+      if (label) showShortcutToast(`${label} applied`);
+    }
+
+    function requestSketchSwitch(sketchFn, label) {
+      applyPatternSwitchAtomic(sketchFn, label);
     }
 
     const playButton = document.getElementById("play");
@@ -5896,12 +6157,12 @@ function synthDustLayer(time, output, gainAmount) {
       });
     }
 
-    document.getElementById("sketchA").addEventListener("click", () => sketchPocket());
-    document.getElementById("sketchB").addEventListener("click", () => sketchLurch());
-    document.getElementById("sketchC").addEventListener("click", () => sketchShuffle());
-    document.getElementById("sketchHouse").addEventListener("click", () => sketchHouse());
-    document.getElementById("sketchTechno").addEventListener("click", () => sketchTechno());
-    document.getElementById("sketchHipHop").addEventListener("click", () => sketchHipHop());
+    document.getElementById("sketchA").addEventListener("click", () => requestSketchSwitch(sketchPocket, "Sketch A"));
+    document.getElementById("sketchB").addEventListener("click", () => requestSketchSwitch(sketchLurch, "Sketch B"));
+    document.getElementById("sketchC").addEventListener("click", () => requestSketchSwitch(sketchShuffle, "Sketch C"));
+    document.getElementById("sketchHouse").addEventListener("click", () => requestSketchSwitch(sketchHouse, "Sketch House"));
+    document.getElementById("sketchTechno").addEventListener("click", () => requestSketchSwitch(sketchTechno, "Sketch Techno"));
+    document.getElementById("sketchHipHop").addEventListener("click", () => requestSketchSwitch(sketchHipHop, "Sketch Hip Hop"));
     if (sketchSurprise) sketchSurprise.addEventListener("click", () => surpriseSketch());
 
     document.querySelectorAll("[data-lock-track]").forEach((input) => {
@@ -6540,13 +6801,13 @@ function synthDustLayer(time, output, gainAmount) {
         return;
       }
 
-      if (key === "1" || key.toLowerCase() === "q") { event.preventDefault(); sketchPocket(); showShortcutToast("Sketch A"); return; }
-      if (key === "2" || key.toLowerCase() === "w") { event.preventDefault(); sketchLurch(); showShortcutToast("Sketch B"); return; }
-      if (key === "3" || key.toLowerCase() === "e") { event.preventDefault(); sketchShuffle(); showShortcutToast("Sketch C"); return; }
-      if (key === "4") { event.preventDefault(); sketchHouse(); showShortcutToast("Sketch House"); return; }
-      if (key === "5") { event.preventDefault(); sketchTechno(); showShortcutToast("Sketch Techno"); return; }
-      if (key === "6") { event.preventDefault(); sketchHipHop(); showShortcutToast("Sketch Hip Hop"); return; }
-      if (key.toLowerCase() === "g") { event.preventDefault(); surpriseSketch(); showShortcutToast("Surprise sketch"); return; }
+      if (key === "1" || key.toLowerCase() === "q") { event.preventDefault(); requestSketchSwitch(sketchPocket, "Sketch A"); return; }
+      if (key === "2" || key.toLowerCase() === "w") { event.preventDefault(); requestSketchSwitch(sketchLurch, "Sketch B"); return; }
+      if (key === "3" || key.toLowerCase() === "e") { event.preventDefault(); requestSketchSwitch(sketchShuffle, "Sketch C"); return; }
+      if (key === "4") { event.preventDefault(); requestSketchSwitch(sketchHouse, "Sketch House"); return; }
+      if (key === "5") { event.preventDefault(); requestSketchSwitch(sketchTechno, "Sketch Techno"); return; }
+      if (key === "6") { event.preventDefault(); requestSketchSwitch(sketchHipHop, "Sketch Hip Hop"); return; }
+      if (key.toLowerCase() === "g") { event.preventDefault(); surpriseSketch(); return; }
 
       const trackMap = { a: 0, d: 1, f: 2, g: 3, h: 4, j: 5, k: 6, l: 7 };
       const trackIndexFromKey = trackMap[key.toLowerCase()];
