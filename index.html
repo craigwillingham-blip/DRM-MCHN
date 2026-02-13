@@ -375,6 +375,128 @@
     .preset-row button {
       width: 100%;
     }
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+    }
+    .icon-btn svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+    .help-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(6, 10, 14, 0.66);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 1000;
+    }
+    .help-modal.open {
+      display: flex;
+    }
+    .help-panel {
+      width: min(920px, 96vw);
+      max-height: 88vh;
+      overflow: auto;
+      background: #101923;
+      border: 1px solid #2b3b49;
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.42);
+    }
+    .help-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .help-head h2 {
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: 0.4px;
+    }
+    .help-grid {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .help-card {
+      border: 1px solid #273645;
+      background: #111c26;
+      border-radius: 10px;
+      padding: 10px;
+    }
+    .help-card h3 {
+      margin: 0 0 8px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.9px;
+      color: #9bb2c3;
+    }
+    .shortcut-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .shortcut-table th,
+    .shortcut-table td {
+      border-bottom: 1px solid #253443;
+      padding: 6px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .shortcut-table th {
+      color: #9fb4c5;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    .kbd {
+      display: inline-block;
+      min-width: 18px;
+      padding: 1px 6px;
+      border: 1px solid #3f5569;
+      border-radius: 5px;
+      background: #172533;
+      color: #d7e6f1;
+      font-size: 11px;
+      line-height: 1.4;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    .shortcut-toast {
+      position: fixed;
+      right: 14px;
+      bottom: 12px;
+      z-index: 1100;
+      background: #0f1a24;
+      border: 1px solid #30475b;
+      color: #d5e4ef;
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 12px;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.16s ease, transform 0.16s ease;
+      pointer-events: none;
+    }
+    .shortcut-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
     .sketch-controls {
       display: grid;
       gap: 8px;
@@ -513,10 +635,30 @@
       display: flex;
       justify-content: space-between;
       gap: 8px;
+      padding: 6px 8px;
+      border: 1px solid #1f2b35;
+      border-radius: 8px;
+      background: #0d141b;
+      cursor: pointer;
+      transition: border-color 0.12s ease, background 0.12s ease;
+    }
+    .palette-item:hover {
+      border-color: #35506a;
+      background: #111c26;
+    }
+    .palette-item.active {
+      border-color: #4e6f8f;
+      background: #142233;
     }
     .palette-tag {
       color: var(--accent-2);
       font-weight: 600;
+    }
+    .palette-summary {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #95a9bb;
+      line-height: 1.3;
     }
 
     /* Layout stabilization overrides */
@@ -1050,6 +1192,13 @@
         </div>
         <span class="small" id="recordStatus">Idle</span>
         <span class="small">Space = Play/Pause</span>
+        <button id="helpButton" class="icon-btn" aria-label="Open Help ( ? )" title="Help (?)">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4"></path>
+            <line x1="12" y1="17" x2="12" y2="17"></line>
+          </svg>
+        </button>
       </div>
     </header>
 
@@ -1193,6 +1342,7 @@
                   </button>
                   <div id="paletteBody" class="section-body collapsed">
                     <div class="palette-list" id="paletteList"></div>
+                    <div class="palette-summary" id="paletteSummary">No tags selected. Sketches use full palette behavior.</div>
                   </div>
                 </div>
               </div>
@@ -1386,6 +1536,68 @@
     </div>
   </div>
 
+  <div id="helpModal" class="help-modal" role="dialog" aria-modal="true" aria-labelledby="helpTitle" aria-describedby="helpDesc">
+    <div id="helpPanel" class="help-panel" tabindex="-1">
+      <div class="help-head">
+        <h2 id="helpTitle">Keyboard Shortcuts & Help</h2>
+        <button id="helpClose" aria-label="Close Help">Close</button>
+      </div>
+      <p id="helpDesc" class="small">Use keyboard shortcuts to control transport, sketches, tracks, and step editing quickly.</p>
+      <div class="help-grid">
+        <section class="help-card">
+          <h3>Overview</h3>
+          <div class="small">Shortcuts are disabled while typing in inputs/selects.</div>
+          <div class="small">Press <span class="kbd">?</span> to open this screen and <span class="kbd">Esc</span> to close it.</div>
+          <div class="small">Use <span class="kbd">Ctrl</span> on Windows/Linux or <span class="kbd">Cmd</span> on macOS for save/load commands.</div>
+        </section>
+        <section class="help-card">
+          <h3>Controls</h3>
+          <div class="small"><span class="kbd">Space</span> Play/Pause, <span class="kbd">S</span> Stop, <span class="kbd">Shift+R</span> Re-roll Feel</div>
+          <div class="small"><span class="kbd">1..6</span> Sketch presets, <span class="kbd">Q/W/E</span> Quick sketches, <span class="kbd">G</span> Surprise</div>
+          <div class="small"><span class="kbd">A D F G H J K L</span> Select tracks, <span class="kbd">M</span> Mute, <span class="kbd">Shift+M</span> Solo</div>
+        </section>
+        <section class="help-card">
+          <h3>Shortcuts Table</h3>
+          <table class="shortcut-table">
+            <thead>
+              <tr><th>Category</th><th>Action</th><th>Shortcut</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Transport</td><td>Play / Pause</td><td><span class="kbd">Space</span></td></tr>
+              <tr><td>Transport</td><td>Stop</td><td><span class="kbd">S</span></td></tr>
+              <tr><td>Transport</td><td>Re-roll Feel</td><td><span class="kbd">Shift</span> + <span class="kbd">R</span></td></tr>
+              <tr><td>Groove</td><td>Tempo +/- 1</td><td><span class="kbd">-</span> / <span class="kbd">=</span></td></tr>
+              <tr><td>Groove</td><td>Tempo +/- 5</td><td><span class="kbd">Shift</span> + <span class="kbd">-</span> / <span class="kbd">=</span></td></tr>
+              <tr><td>Groove</td><td>Swing +/- 1</td><td><span class="kbd">[</span> / <span class="kbd">]</span></td></tr>
+              <tr><td>Sketch</td><td>Sketch A/B/C</td><td><span class="kbd">1</span> / <span class="kbd">2</span> / <span class="kbd">3</span></td></tr>
+              <tr><td>Sketch</td><td>House/Techno/HipHop</td><td><span class="kbd">4</span> / <span class="kbd">5</span> / <span class="kbd">6</span></td></tr>
+              <tr><td>Track</td><td>Select Track 1..8</td><td><span class="kbd">A</span> <span class="kbd">D</span> <span class="kbd">F</span> <span class="kbd">G</span> <span class="kbd">H</span> <span class="kbd">J</span> <span class="kbd">K</span> <span class="kbd">L</span></td></tr>
+              <tr><td>Track</td><td>Mute / Solo</td><td><span class="kbd">M</span> / <span class="kbd">Shift</span> + <span class="kbd">M</span></td></tr>
+              <tr><td>Track</td><td>Tensor Toggle</td><td><span class="kbd">T</span></td></tr>
+              <tr><td>Step Edit</td><td>Move selected step</td><td><span class="kbd">Left</span> / <span class="kbd">Right</span></td></tr>
+              <tr><td>Step Edit</td><td>Toggle step on/off</td><td><span class="kbd">Enter</span></td></tr>
+              <tr><td>Step Edit</td><td>Velocity cycle</td><td><span class="kbd">V</span></td></tr>
+              <tr><td>Step Edit</td><td>Micro nudge</td><td><span class="kbd">,</span> / <span class="kbd">.</span></td></tr>
+              <tr><td>Modes</td><td>Sketch / Edit / Perform</td><td><span class="kbd">F1</span> / <span class="kbd">F2</span> / <span class="kbd">F3</span></td></tr>
+              <tr><td>Tabs</td><td>Context tabs 1..5</td><td><span class="kbd">Alt</span> + <span class="kbd">1..5</span></td></tr>
+              <tr><td>Save/Load</td><td>Save active slot / Load picker</td><td><span class="kbd">Ctrl/Cmd</span> + <span class="kbd">S</span> / <span class="kbd">O</span></td></tr>
+              <tr><td>Save/Load</td><td>Load slot 1..8</td><td><span class="kbd">Ctrl/Cmd</span> + <span class="kbd">1..8</span></td></tr>
+              <tr><td>Save/Load</td><td>Save slot 1..8</td><td><span class="kbd">Ctrl/Cmd</span> + <span class="kbd">Shift</span> + <span class="kbd">1..8</span></td></tr>
+              <tr><td>Help</td><td>Open / Close</td><td><span class="kbd">?</span> / <span class="kbd">Esc</span></td></tr>
+            </tbody>
+          </table>
+        </section>
+        <section class="help-card">
+          <h3>Tips</h3>
+          <div class="small">Use <span class="kbd">A D F G H J K L</span> then <span class="kbd">M</span>/<span class="kbd">Shift+M</span> to manage mix fast.</div>
+          <div class="small">Hold <span class="kbd">Shift</span> to reveal per-step velocity values.</div>
+          <div class="small">Save iterations to slots often while testing evolution and palette tags.</div>
+        </section>
+      </div>
+    </div>
+  </div>
+  <div id="shortcutToast" class="shortcut-toast" aria-live="polite"></div>
+
   <script>
     const tracks = [
       { name: "Kick", tone: "kick", color: "#f5c542" },
@@ -1496,6 +1708,21 @@
       { name: "Tabla Daya", tag: "Tuned Mod" },
       { name: "Tabla Baya", tag: "Tuned Mod" }
     ];
+    const paletteState = {
+      selectedTags: new Set(),
+      selectedNames: new Set()
+    };
+    const PALETTE_TAG_WEIGHTS = {
+      "High Perc": { highTune: 0.9, hatBias: 0.55, rideBias: 0.45, densityBoost: 0.08, styleMetallic: 0.2 },
+      "Hit Snap": { snapBias: 1.0, snareBias: 0.5, clapBias: 0.5, accentBoost: 0.08, styleDirty: 0.15 },
+      "Tuned Low": { lowTune: 1.0, kickBias: 0.45, tomBias: 0.65, densityBoost: -0.08, styleLofi: 0.2 },
+      "Tuned Mid": { midTune: 0.9, tomBias: 0.45, percBias: 0.45, ghostBias: 0.12, styleLofi: 0.1 },
+      "Tuned High": { highTune: 0.7, hatBias: 0.3, percBias: 0.5, densityBoost: 0.05, styleMetallic: 0.1 },
+      "Texture": { textureBias: 1.0, hatBias: 0.5, rideBias: 0.5, densityBoost: 0.1, ghostBias: 0.08, styleSoft: 0.2 },
+      "Lead Perc": { leadBias: 1.0, percBias: 0.7, fxBias: 0.35, accentBoost: 0.08, styleMetallic: 0.15 },
+      "Accent FX": { accentFxBias: 1.0, fxBias: 0.9, accentBoost: 0.16, densityBoost: -0.02, styleSoft: 0.15 },
+      "Tuned Mod": { modBias: 1.0, tomBias: 0.45, percBias: 0.25, fxBias: 0.35, ghostBias: 0.05, styleDirty: 0.1 }
+    };
 
     const sketchLocks = new Set();
     let lastSketchName = "";
@@ -2196,18 +2423,19 @@
       setSketchActive("sketchA");
       resetSequence();
       const params = getSketchParams();
-      const density = params.density === "Sparse" ? 0.35 : params.density === "Dense" ? 0.7 : 0.5;
-      const accentProb = params.accent === "Offbeat" ? 0.25 : params.accent === "Ghosted" ? 0.12 : 0.18;
+      const baseDensity = params.density === "Sparse" ? 0.35 : params.density === "Dense" ? 0.7 : 0.5;
+      const baseAccentProb = params.accent === "Offbeat" ? 0.25 : params.accent === "Ghosted" ? 0.12 : 0.18;
+      const palette = getPaletteSketchAdjustments(baseDensity, baseAccentProb);
       // Pocket: deep low-end with subtle ghost snare.
       const kicks = mutatePattern(pickVariant(POCKET_KICKS), 2, [0, 2, 3, 5, 6, 8, 9, 10, 12, 14, 15]);
       const snares = mutatePattern(pickVariant(POCKET_SNARES), 1, [4, 11, 12, 15]);
       const ghosts = mutatePattern(pickVariant(POCKET_GHOSTS), 2, [2, 3, 6, 7, 9, 10, 14, 15]);
       fillKickPattern(kicks);
       fillSnarePattern(snares);
-      fillGhosts(1, ghosts, 0.42);
-      fillHatPattern(density);
-      fillPercPattern(pickVariant(POCKET_PERC));
-      addHatAccentOverlay(accentProb);
+      fillGhosts(1, ghosts, palette.ghostVelocity);
+      fillHatPattern(palette.density);
+      fillPercPattern(mutatePattern(pickVariant(POCKET_PERC), Math.round(1 + palette.inf.leadBias * 2), ALL_STEPS));
+      addHatAccentOverlay(palette.accent);
       pushSketchVariation(0.35);
       finalizeSketch("Sketch A", params, 0.35, quickSketchSummary, quickVariation, quickVariationValue);
     }
@@ -2216,18 +2444,19 @@
       setSketchActive("sketchB");
       resetSequence();
       const params = getSketchParams();
-      const density = params.density === "Sparse" ? 0.3 : params.density === "Dense" ? 0.68 : 0.48;
-      const accentProb = params.accent === "Offbeat" ? 0.28 : params.accent === "Ghosted" ? 0.14 : 0.2;
+      const baseDensity = params.density === "Sparse" ? 0.3 : params.density === "Dense" ? 0.68 : 0.48;
+      const baseAccentProb = params.accent === "Offbeat" ? 0.28 : params.accent === "Ghosted" ? 0.14 : 0.2;
+      const palette = getPaletteSketchAdjustments(baseDensity, baseAccentProb);
       // Lurch: offbeat kicks, broken hats, more ghost activity.
       const kicks = mutatePattern(pickVariant(LURCH_KICKS), 3, [0, 2, 5, 6, 7, 9, 10, 13, 14, 15]);
       const snares = mutatePattern(pickVariant(LURCH_SNARES), 2, [4, 11, 12, 15]);
       const ghosts = mutatePattern(pickVariant(LURCH_GHOSTS), 3, [2, 3, 6, 7, 9, 10, 11, 14, 15]);
       fillKickPattern(kicks);
       fillSnarePattern(snares);
-      fillGhosts(1, ghosts, 0.38);
-      fillHatPattern(density);
-      fillPercPattern(pickVariant(LURCH_PERC));
-      addHatAccentOverlay(accentProb);
+      fillGhosts(1, ghosts, Math.max(0.3, palette.ghostVelocity - 0.03));
+      fillHatPattern(palette.density);
+      fillPercPattern(mutatePattern(pickVariant(LURCH_PERC), Math.round(1 + palette.inf.modBias * 3), ALL_STEPS));
+      addHatAccentOverlay(palette.accent);
       pushSketchVariation(0.4);
       finalizeSketch("Sketch B", params, 0.4, quickSketchSummary, quickVariation, quickVariationValue);
     }
@@ -2236,19 +2465,20 @@
       setSketchActive("sketchC");
       resetSequence();
       const params = getSketchParams();
-      const density = params.density === "Sparse" ? 0.32 : params.density === "Dense" ? 0.72 : 0.52;
-      const accentProb = params.accent === "Offbeat" ? 0.3 : params.accent === "Ghosted" ? 0.12 : 0.18;
+      const baseDensity = params.density === "Sparse" ? 0.32 : params.density === "Dense" ? 0.72 : 0.52;
+      const baseAccentProb = params.accent === "Offbeat" ? 0.3 : params.accent === "Ghosted" ? 0.12 : 0.18;
+      const palette = getPaletteSketchAdjustments(baseDensity, baseAccentProb);
       // Shuffle: sparse kicks, busier top, shifted accents.
       const kicks = mutatePattern(pickVariant(SHUFFLE_KICKS), 2, [0, 2, 5, 6, 7, 8, 11, 12, 14, 15]);
       const snares = mutatePattern(pickVariant(SHUFFLE_SNARES), 1, [4, 12, 15]);
       const ghosts = mutatePattern(pickVariant(SHUFFLE_GHOSTS), 2, [5, 6, 7, 9, 10, 11, 12]);
       fillKickPattern(kicks);
       fillSnarePattern(snares);
-      fillGhosts(1, ghosts, 0.38);
-      fillHatPattern(density);
+      fillGhosts(1, ghosts, Math.max(0.28, palette.ghostVelocity - 0.02));
+      fillHatPattern(palette.density);
       fillRidePattern(pickVariant(SHUFFLE_RIDE));
-      fillPercPattern(pickVariant(SHUFFLE_PERC));
-      addHatAccentOverlay(accentProb);
+      fillPercPattern(mutatePattern(pickVariant(SHUFFLE_PERC), Math.round(1 + palette.inf.leadBias * 2), ALL_STEPS));
+      addHatAccentOverlay(palette.accent);
       pushSketchVariation(0.35);
       finalizeSketch("Sketch C", params, 0.35, quickSketchSummary, quickVariation, quickVariationValue);
     }
@@ -2257,17 +2487,18 @@
       setSketchActive("sketchHouse");
       resetSequence();
       const params = getSketchParams();
-      const density = params.density === "Sparse" ? 0.35 : params.density === "Dense" ? 0.7 : 0.5;
-      const accentProb = params.accent === "Offbeat" ? 0.22 : params.accent === "Ghosted" ? 0.1 : 0.16;
+      const baseDensity = params.density === "Sparse" ? 0.35 : params.density === "Dense" ? 0.7 : 0.5;
+      const baseAccentProb = params.accent === "Offbeat" ? 0.22 : params.accent === "Ghosted" ? 0.1 : 0.16;
+      const palette = getPaletteSketchAdjustments(baseDensity, baseAccentProb);
       // House: four-on-the-floor with offbeat hats.
       const kicks = mutatePattern(pickVariant(HOUSE_KICKS), 1, [0, 4, 7, 8, 12, 15]);
       const snares = mutatePattern(pickVariant(HOUSE_SNARES), 1, [4, 12, 14]);
       fillKickPattern(kicks);
       fillSnarePattern(snares);
-      [2, 6, 10, 14].forEach((s) => activateStep(2, s, density));
-      fillHatPattern(density);
+      [2, 6, 10, 14].forEach((s) => activateStep(2, s, palette.density));
+      fillHatPattern(palette.density);
       fillPercPattern([7, 11]);
-      addHatAccentOverlay(accentProb);
+      addHatAccentOverlay(palette.accent);
       pushSketchVariation(0.45);
       finalizeSketch(`House ${houseFlavor ? houseFlavor.value : ""}`.trim(), params, 0.45, genreSketchSummary, genreVariation, genreVariationValue);
     }
@@ -2276,16 +2507,17 @@
       setSketchActive("sketchTechno");
       resetSequence();
       const params = getSketchParams();
-      const density = params.density === "Sparse" ? 0.35 : params.density === "Dense" ? 0.75 : 0.55;
-      const accentProb = params.accent === "Offbeat" ? 0.24 : params.accent === "Ghosted" ? 0.1 : 0.16;
+      const baseDensity = params.density === "Sparse" ? 0.35 : params.density === "Dense" ? 0.75 : 0.55;
+      const baseAccentProb = params.accent === "Offbeat" ? 0.24 : params.accent === "Ghosted" ? 0.1 : 0.16;
+      const palette = getPaletteSketchAdjustments(baseDensity, baseAccentProb);
       // Techno: rigid kicks, driving hats, sparse perc.
       const kicks = mutatePattern(pickVariant(TECHNO_KICKS), 1, [0, 4, 8, 11, 12, 14, 15]);
       const snares = mutatePattern(pickVariant(TECHNO_SNARES), 1, [4, 12, 15]);
       fillKickPattern(kicks);
       fillSnarePattern(snares);
-      for (let i = 0; i < steps; i++) activateStep(2, i, density);
-      fillPercPattern([3, 7, 11, 15]);
-      addHatAccentOverlay(accentProb);
+      for (let i = 0; i < steps; i++) activateStep(2, i, palette.density);
+      fillPercPattern(mutatePattern([3, 7, 11, 15], Math.round(1 + palette.inf.modBias * 2), ALL_STEPS));
+      addHatAccentOverlay(palette.accent);
       pushSketchVariation(0.5);
       finalizeSketch(`Techno ${technoFlavor ? technoFlavor.value : ""}`.trim(), params, 0.5, genreSketchSummary, genreVariation, genreVariationValue);
     }
@@ -2294,16 +2526,19 @@
       setSketchActive("sketchHipHop");
       resetSequence();
       const params = getSketchParams();
-      const density = params.density === "Sparse" ? 0.32 : params.density === "Dense" ? 0.68 : 0.48;
+      const baseDensity = params.density === "Sparse" ? 0.32 : params.density === "Dense" ? 0.68 : 0.48;
+      const baseAccentProb = params.accent === "Offbeat" ? 0.24 : params.accent === "Ghosted" ? 0.14 : 0.16;
+      const palette = getPaletteSketchAdjustments(baseDensity, baseAccentProb);
       // Hip hop: syncopated kicks, laid-back hats, ghosted snare.
       const kicks = mutatePattern(pickVariant(HIPHOP_KICKS), 2, [0, 3, 5, 6, 7, 9, 10, 12, 13, 14, 15]);
       const snares = mutatePattern(pickVariant(HIPHOP_SNARES), 1, [4, 12, 15]);
       const ghosts = mutatePattern(pickVariant(HIPHOP_GHOSTS), 2, [2, 3, 6, 7, 9, 10, 14, 15]);
       fillKickPattern(kicks);
       fillSnarePattern(snares);
-      fillGhosts(1, ghosts, 0.35);
-      fillHatPattern(density);
-      fillPercPattern([9, 13]);
+      fillGhosts(1, ghosts, Math.max(0.26, palette.ghostVelocity - 0.04));
+      fillHatPattern(palette.density);
+      fillPercPattern(mutatePattern([9, 13], Math.round(1 + palette.inf.leadBias * 2), ALL_STEPS));
+      addHatAccentOverlay(palette.accent);
       pushSketchVariation(0.45);
       finalizeSketch(`Hip Hop ${hiphopFlavor ? hiphopFlavor.value : ""}`.trim(), params, 0.45, genreSketchSummary, genreVariation, genreVariationValue);
     }
@@ -2336,15 +2571,173 @@
       targetEl.textContent = `${name} • ${params.groove} / ${params.density} / ${params.accent} / ${params.humanize}`;
     }
 
+    function weightedPick(items, getWeight) {
+      if (!items || !items.length) return null;
+      let total = 0;
+      const weights = items.map((item) => {
+        const w = Math.max(0, Number(getWeight(item)) || 0);
+        total += w;
+        return w;
+      });
+      if (total <= 0) return pickVariant(items);
+      let roll = Math.random() * total;
+      for (let i = 0; i < items.length; i++) {
+        roll -= weights[i];
+        if (roll <= 0) return items[i];
+      }
+      return items[items.length - 1];
+    }
+
+    function getPaletteInfluence() {
+      const tags = Array.from(paletteState.selectedTags);
+      if (!tags.length) {
+        return {
+          active: false,
+          densityBoost: 0,
+          accentBoost: 0,
+          ghostBias: 0,
+          textureBias: 0,
+          snapBias: 0,
+          leadBias: 0,
+          accentFxBias: 0,
+          modBias: 0,
+          lowTune: 0,
+          midTune: 0,
+          highTune: 0,
+          trackWeights: [1, 1, 1, 1, 1, 1, 1, 1],
+          styleWeights: { lofi: 1, metallic: 1, dirty: 1, soft: 1 }
+        };
+      }
+      const out = {
+        active: true,
+        densityBoost: 0,
+        accentBoost: 0,
+        ghostBias: 0,
+        textureBias: 0,
+        snapBias: 0,
+        leadBias: 0,
+        accentFxBias: 0,
+        modBias: 0,
+        lowTune: 0,
+        midTune: 0,
+        highTune: 0,
+        kickBias: 0,
+        snareBias: 0,
+        hatBias: 0,
+        clapBias: 0,
+        tomBias: 0,
+        percBias: 0,
+        rideBias: 0,
+        fxBias: 0,
+        styleLofi: 0,
+        styleMetallic: 0,
+        styleDirty: 0,
+        styleSoft: 0
+      };
+      tags.forEach((tag) => {
+        const w = PALETTE_TAG_WEIGHTS[tag];
+        if (!w) return;
+        Object.keys(w).forEach((k) => { out[k] = (out[k] || 0) + w[k]; });
+      });
+      const n = tags.length;
+      Object.keys(out).forEach((k) => {
+        if (k === "active") return;
+        out[k] = out[k] / n;
+      });
+      out.trackWeights = [
+        1 + out.kickBias * 0.9 + out.lowTune * 0.35,
+        1 + out.snareBias * 0.75 + out.snapBias * 0.35,
+        1 + out.hatBias * 0.95 + out.textureBias * 0.35 + out.highTune * 0.25,
+        1 + out.clapBias * 0.8 + out.snapBias * 0.35,
+        1 + out.tomBias * 1.0 + out.lowTune * 0.35 + out.modBias * 0.25,
+        1 + out.percBias * 0.95 + out.leadBias * 0.35 + out.highTune * 0.15,
+        1 + out.rideBias * 0.85 + out.textureBias * 0.25,
+        1 + out.fxBias * 1.0 + out.accentFxBias * 0.45 + out.modBias * 0.2
+      ];
+      out.styleWeights = {
+        lofi: 1 + out.styleLofi,
+        metallic: 1 + out.styleMetallic,
+        dirty: 1 + out.styleDirty,
+        soft: 1 + out.styleSoft
+      };
+      return out;
+    }
+
+    function getPaletteSketchAdjustments(baseDensity, baseAccentProb) {
+      const inf = getPaletteInfluence();
+      const density = clamp(baseDensity + inf.densityBoost * 0.18 + inf.textureBias * 0.06 - inf.lowTune * 0.05, 0.2, 0.9);
+      const accent = clamp(baseAccentProb + inf.accentBoost * 0.45 + inf.accentFxBias * 0.18 + inf.snapBias * 0.12, 0.04, 0.5);
+      const ghostVelocity = clamp(0.34 + inf.ghostBias * 0.1 + inf.textureBias * 0.05, 0.2, 0.55);
+      return { inf, density, accent, ghostVelocity };
+    }
+
+    function applyPaletteToTrackState(intensity = 1) {
+      const inf = getPaletteInfluence();
+      if (!inf.active) return;
+      const styleChoices = ["lofi", "metallic", "dirty", "soft"];
+      trackState.forEach((state, index) => {
+        const toneWeight = inf.trackWeights[index] || 1;
+        const toneScale = clamp(0.3 + (toneWeight - 1) * 0.9, 0.15, 1.4) * intensity;
+        const style = weightedPick(styleChoices, (s) => inf.styleWeights[s] || 1);
+        updateTrackParam(index, "style", style);
+        if (index === 0) state.filter = clamp(state.filter - inf.lowTune * 250 * toneScale, 300, 8000);
+        if (index === 1 || index === 3) state.crush = clamp(state.crush + inf.snapBias * 0.12 * toneScale, 0, 1);
+        if (index === 2 || index === 6) state.decay = clamp(state.decay + (inf.textureBias * 0.18 + inf.highTune * 0.08) * toneScale, 0.08, 1.2);
+        if (index === 4 || index === 5 || index === 7) state.pitch = clamp(state.pitch + (inf.highTune * 0.9 - inf.lowTune * 0.7 + inf.modBias * 0.8) * toneScale, -12, 12);
+        if (index === 7) state.reverb = clamp(state.reverb + inf.accentFxBias * 0.25 * toneScale, 0, 1);
+        state.filter = clamp(state.filter + (inf.highTune - inf.lowTune) * 220 * toneScale, 300, 8000);
+        state.dist = clamp(state.dist + (inf.leadBias * 0.1 + inf.modBias * 0.08) * toneScale, 0, 1);
+        state.fx = clamp(state.fx + (inf.accentFxBias * 0.12 + inf.textureBias * 0.08) * toneScale, 0, 1);
+        updateTrackParam(index, "pitch", state.pitch);
+        updateTrackParam(index, "filter", state.filter);
+        updateTrackParam(index, "decay", state.decay * 100);
+        updateTrackParam(index, "crush", state.crush * 100);
+        updateTrackParam(index, "dist", state.dist * 100);
+        updateTrackParam(index, "reverb", state.reverb * 100);
+        updateTrackParam(index, "fx", state.fx * 100);
+      });
+    }
+
+    function updatePaletteSummary() {
+      if (!paletteSummary) return;
+      const tags = Array.from(paletteState.selectedTags);
+      if (!tags.length) {
+        paletteSummary.textContent = "No tags selected. Sketches use full palette behavior.";
+        return;
+      }
+      const influence = getPaletteInfluence();
+      const focusTrack = weightedPick(tracks.map((_, i) => i), (i) => influence.trackWeights[i] || 1);
+      const trackName = tracks[focusTrack] ? tracks[focusTrack].name : "Mix";
+      paletteSummary.textContent = `Active: ${tags.join(", ")}. Sketch + evolution now bias toward ${trackName} timbre behavior.`;
+    }
+
     function renderPalettePanel() {
       if (!paletteList) return;
       paletteList.innerHTML = "";
-      INSTRUMENT_PALETTE.forEach((item) => {
+      INSTRUMENT_PALETTE.forEach((item, index) => {
         const row = document.createElement("div");
         row.className = "palette-item";
+        row.classList.toggle("active", paletteState.selectedNames.has(item.name));
         row.innerHTML = `<span>${item.name}</span><span class="palette-tag">${item.tag}</span>`;
+        row.addEventListener("click", () => {
+          if (paletteState.selectedNames.has(item.name)) {
+            paletteState.selectedNames.delete(item.name);
+          } else {
+            paletteState.selectedNames.add(item.name);
+          }
+          paletteState.selectedTags.clear();
+          INSTRUMENT_PALETTE.forEach((entry) => {
+            if (paletteState.selectedNames.has(entry.name)) paletteState.selectedTags.add(entry.tag);
+          });
+          renderPalettePanel();
+          updatePaletteSummary();
+        });
+        if (index === 0 && !paletteState.selectedNames.size) {
+          row.title = "Click tags to bias sketch and evolution behavior";
+        }
         paletteList.appendChild(row);
       });
+      updatePaletteSummary();
     }
 
     function generateWhimsicalName() {
@@ -2380,6 +2773,7 @@
       applyHumanizePreset(groovePreset.value);
       applyHumanizeMode(params.humanize);
       applySketchParamNudges();
+      applyPaletteToTrackState(0.95);
       if (Math.random() < evolutionAmount) {
         mutateTowardDivergence(1 + evolutionAmount * 2);
       }
@@ -2961,9 +3355,10 @@
     }
 
     function mutateTowardDivergence(intensity = 1) {
+      const paletteInf = getPaletteInfluence();
       const mutationCount = Math.max(1, Math.round((2 + behavior.stress * 4) * intensity));
       for (let i = 0; i < mutationCount; i++) {
-        const t = Math.floor(Math.random() * tracks.length);
+        const t = weightedPick(tracks.map((_, idx) => idx), (idx) => paletteInf.trackWeights[idx] || 1);
         if (sketchLocks.has(t)) continue;
         const s = Math.floor(Math.random() * steps);
         const step = sequence[t][s];
@@ -3076,13 +3471,14 @@
     }
 
     function mutateOneEvolutionStep(profile, evolveAmount) {
+      const paletteInf = getPaletteInfluence();
       const coreChance = 0.08 + evolveAmount * 0.18;
       const pool = Math.random() < coreChance
         ? [...profile.coreTracks, ...profile.supportTracks]
         : [...profile.supportTracks];
       const candidates = pool.filter((idx) => !sketchLocks.has(idx));
       if (!candidates.length) return false;
-      const trackIndex = pickVariant(candidates);
+      const trackIndex = weightedPick(candidates, (idx) => paletteInf.trackWeights[idx] || 1);
       const row = sequence[trackIndex];
       const allowed = profile.allowed?.[trackIndex] || ALL_STEPS;
       const active = [];
@@ -3143,7 +3539,8 @@
       const insertable = inactive.filter((s) => !isDownbeat(s));
       if (!insertable.length) return false;
       const to = pickVariant(insertable);
-      if (Math.random() < 0.6) {
+      const ghostChance = clamp(0.45 + paletteInf.textureBias * 0.22 + paletteInf.modBias * 0.16 + paletteInf.highTune * 0.08, 0.3, 0.82);
+      if (Math.random() < ghostChance) {
         return createGhostNote(row, to);
       }
       const baseVel = trackIndex === 0 ? 0.78 : trackIndex === 1 ? 0.62 : 0.42;
@@ -3404,6 +3801,12 @@
     let recordBuffersR = [];
     let recordLength = 0;
     let isResamplingMaster = false;
+    const SLOT_STORAGE_KEY = "drm_mchn_pattern_slots_v1";
+    const SLOT_COUNT = 8;
+    let activePatternSlot = 1;
+    let helpOpen = false;
+    let lastFocusedBeforeHelp = null;
+    let toastTimerId = null;
 
     const tempo = document.getElementById("tempo");
     const tempoValue = document.getElementById("tempoValue");
@@ -3483,6 +3886,7 @@
     const quickSketchSummary = document.getElementById("quickSketchSummary");
     const genreSketchSummary = document.getElementById("genreSketchSummary");
     const paletteList = document.getElementById("paletteList");
+    const paletteSummary = document.getElementById("paletteSummary");
     const xyPad = document.getElementById("xyPad");
     const xyCrosshair = document.getElementById("xyCrosshair");
     const xyHandle = document.getElementById("xyHandle");
@@ -3518,6 +3922,11 @@
     const recordButton = document.getElementById("record");
     const exportWavButton = document.getElementById("exportWav");
     const recordStatus = document.getElementById("recordStatus");
+    const helpButton = document.getElementById("helpButton");
+    const helpModal = document.getElementById("helpModal");
+    const helpPanel = document.getElementById("helpPanel");
+    const helpClose = document.getElementById("helpClose");
+    const shortcutToast = document.getElementById("shortcutToast");
 
     function wrapIndex(index, len) {
       let out = index % len;
@@ -3859,6 +4268,253 @@
       anchor.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       recordStatus.textContent = "Exported";
+    }
+
+    function isMacPlatform() {
+      return typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/i.test(navigator.platform);
+    }
+
+    function cmdLabel() {
+      return isMacPlatform() ? "Cmd" : "Ctrl";
+    }
+
+    function showShortcutToast(message) {
+      if (!shortcutToast) return;
+      shortcutToast.textContent = message;
+      shortcutToast.classList.add("show");
+      if (toastTimerId) clearTimeout(toastTimerId);
+      toastTimerId = setTimeout(() => {
+        shortcutToast.classList.remove("show");
+      }, 1200);
+    }
+
+    function isEditableTarget(target) {
+      if (!target) return false;
+      const tag = (target.tagName || "").toLowerCase();
+      if (target.isContentEditable) return true;
+      return tag === "input" || tag === "textarea" || tag === "select";
+    }
+
+    function getSlotStore() {
+      const empty = { activeSlot: 1, slots: Array.from({ length: SLOT_COUNT }, (_, i) => ({ name: `Slot ${i + 1}`, pattern: null })) };
+      try {
+        const raw = localStorage.getItem(SLOT_STORAGE_KEY);
+        if (!raw) return empty;
+        const parsed = JSON.parse(raw);
+        if (!parsed || !Array.isArray(parsed.slots)) return empty;
+        const slots = Array.from({ length: SLOT_COUNT }, (_, i) => parsed.slots[i] || { name: `Slot ${i + 1}`, pattern: null });
+        return { activeSlot: clamp(Number(parsed.activeSlot) || 1, 1, SLOT_COUNT), slots };
+      } catch (err) {
+        return empty;
+      }
+    }
+
+    function setSlotStore(store) {
+      try {
+        localStorage.setItem(SLOT_STORAGE_KEY, JSON.stringify(store));
+      } catch (err) {
+        console.warn("Could not persist slot store:", err);
+      }
+    }
+
+    function cloneStep(step) {
+      return {
+        on: !!step.on,
+        velocity: Number(step.velocity) || 0.7,
+        offset: Number(step.offset) || 0,
+        humanOffset: Number(step.humanOffset) || 0,
+        humanVel: Number(step.humanVel) || 1,
+        humanDetune: Number(step.humanDetune) || 0,
+        humanMod: Number(step.humanMod) || 0,
+        cond: {
+          chance: clamp(Number(step.cond?.chance) || 100, 0, 100),
+          every: Math.max(1, Number(step.cond?.every) || 1)
+        },
+        locks: {
+          pitch: step.locks?.pitch ?? null,
+          reverse: step.locks?.reverse ?? null,
+          stretch: step.locks?.stretch ?? null,
+          slice: step.locks?.slice ?? null,
+          filter: step.locks?.filter ?? null,
+          resonance: step.locks?.resonance ?? null,
+          decay: step.locks?.decay ?? null,
+          fx: step.locks?.fx ?? null
+        }
+      };
+    }
+
+    function serializePatternState() {
+      const seq = sequence.map((row) => row.map((step) => cloneStep(step)));
+      const tracksLite = trackState.map((state) => ({
+        mute: !!state.mute,
+        solo: !!state.solo,
+        tensorEnabled: !!state.tensorEnabled,
+        cycle: state.cycle,
+        stutter: state.stutter,
+        source: state.source,
+        volume: state.volume,
+        pitch: state.pitch,
+        decay: state.decay,
+        stretch: state.stretch,
+        slice: state.slice,
+        filter: state.filter,
+        resonance: state.resonance,
+        crush: state.crush,
+        dist: state.dist,
+        delay: state.delay,
+        reverb: state.reverb,
+        fx: state.fx,
+        lfo: state.lfo,
+        style: state.style
+      }));
+      return {
+        version: 1,
+        timestamp: Date.now(),
+        sequence: seq,
+        trackState: tracksLite,
+        selectedTrackIndex,
+        selectedStep
+      };
+    }
+
+    function applyPatternState(payload) {
+      if (!payload || !Array.isArray(payload.sequence) || !Array.isArray(payload.trackState)) return false;
+      if (payload.sequence.length !== sequence.length || payload.trackState.length !== trackState.length) return false;
+
+      for (let t = 0; t < sequence.length; t++) {
+        for (let s = 0; s < steps; s++) {
+          const incoming = payload.sequence[t][s];
+          if (!incoming) continue;
+          sequence[t][s] = cloneStep(incoming);
+        }
+      }
+
+      for (let t = 0; t < trackState.length; t++) {
+        const incoming = payload.trackState[t] || {};
+        const state = trackState[t];
+        state.mute = !!incoming.mute;
+        state.solo = !!incoming.solo;
+        state.tensorEnabled = !!incoming.tensorEnabled;
+        updateTrackParam(t, "cycle", clamp(Number(incoming.cycle) || 16, 8, 16));
+        updateTrackParam(t, "stutter", clamp((Number(incoming.stutter) || 0) * 100, 0, 100));
+        updateTrackParam(t, "source", incoming.source || "sample");
+        updateTrackParam(t, "volume", clamp((Number(incoming.volume) || 0.8) * 100, 0, 100));
+        updateTrackParam(t, "pitch", clamp(Number(incoming.pitch) || 0, -12, 12));
+        updateTrackParam(t, "decay", clamp((Number(incoming.decay) || 0.5) * 100, 10, 100));
+        updateTrackParam(t, "stretch", clamp(Number(incoming.stretch) || 1, 0.5, 2));
+        updateTrackParam(t, "slice", clamp(Number(incoming.slice) || 0, 0, 15));
+        updateTrackParam(t, "filter", clamp(Number(incoming.filter) || 1200, 300, 8000));
+        updateTrackParam(t, "res", clamp(Number(incoming.resonance) || 1, 0.1, 12));
+        updateTrackParam(t, "crush", clamp((Number(incoming.crush) || 0) * 100, 0, 100));
+        updateTrackParam(t, "dist", clamp((Number(incoming.dist) || 0) * 100, 0, 100));
+        updateTrackParam(t, "delay", clamp((Number(incoming.delay) || 0) * 100, 0, 100));
+        updateTrackParam(t, "reverb", clamp((Number(incoming.reverb) || 0) * 100, 0, 100));
+        updateTrackParam(t, "fx", clamp((Number(incoming.fx) || 0.3) * 100, 0, 100));
+        updateTrackParam(t, "lfo", clamp((Number(incoming.lfo) || 0) * 100, 0, 100));
+        updateTrackParam(t, "style", incoming.style || "lofi");
+      }
+
+      document.querySelectorAll(".strip-row").forEach((row) => {
+        const idx = Number(row.dataset.rowIndex);
+        const muteBtn = row.querySelector(".strip-mute");
+        const soloBtn = row.querySelector(".strip-solo");
+        const tensorBtn = row.querySelector(".strip-tensor");
+        if (muteBtn) {
+          muteBtn.classList.toggle("active", trackState[idx].mute);
+          muteBtn.textContent = trackState[idx].mute ? "Muted" : "Mute";
+        }
+        if (soloBtn) soloBtn.classList.toggle("active", trackState[idx].solo);
+        if (tensorBtn) tensorBtn.classList.toggle("active", trackState[idx].tensorEnabled);
+      });
+
+      refreshStepUI();
+      updateSoloVisuals();
+      setSelectedTrack(clamp(Number(payload.selectedTrackIndex) || 0, 0, tracks.length - 1));
+      if (payload.selectedStep && Number.isInteger(payload.selectedStep.trackIndex) && Number.isInteger(payload.selectedStep.stepIndex)) {
+        selectStep(payload.selectedStep.trackIndex, payload.selectedStep.stepIndex);
+      } else {
+        selectedStep = null;
+      }
+      return true;
+    }
+
+    function savePatternToSlot(slotNumber) {
+      const slot = clamp(slotNumber, 1, SLOT_COUNT);
+      const store = getSlotStore();
+      store.activeSlot = slot;
+      store.slots[slot - 1] = { name: `Slot ${slot}`, pattern: serializePatternState() };
+      setSlotStore(store);
+      activePatternSlot = slot;
+      showShortcutToast(`Saved pattern to Slot ${slot}`);
+    }
+
+    function loadPatternFromSlot(slotNumber) {
+      const slot = clamp(slotNumber, 1, SLOT_COUNT);
+      const store = getSlotStore();
+      const payload = store.slots[slot - 1]?.pattern;
+      if (!payload) {
+        showShortcutToast(`Slot ${slot} is empty`);
+        return;
+      }
+      if (applyPatternState(payload)) {
+        store.activeSlot = slot;
+        setSlotStore(store);
+        activePatternSlot = slot;
+        showShortcutToast(`Loaded Slot ${slot}`);
+      } else {
+        showShortcutToast(`Slot ${slot} is incompatible`);
+      }
+    }
+
+    function loadPatternFromPrompt() {
+      const input = prompt(`Load which slot? (1-${SLOT_COUNT})`, String(activePatternSlot));
+      if (input === null) return;
+      const slot = Number(input);
+      if (!Number.isInteger(slot) || slot < 1 || slot > SLOT_COUNT) {
+        showShortcutToast("Invalid slot number");
+        return;
+      }
+      loadPatternFromSlot(slot);
+    }
+
+    function openHelpModal() {
+      if (!helpModal || !helpPanel) return;
+      if (helpOpen) return;
+      helpOpen = true;
+      lastFocusedBeforeHelp = document.activeElement;
+      helpModal.classList.add("open");
+      helpModal.setAttribute("aria-hidden", "false");
+      helpPanel.focus();
+    }
+
+    function closeHelpModal() {
+      if (!helpModal) return;
+      if (!helpOpen) return;
+      helpOpen = false;
+      helpModal.classList.remove("open");
+      helpModal.setAttribute("aria-hidden", "true");
+      if (lastFocusedBeforeHelp && typeof lastFocusedBeforeHelp.focus === "function") {
+        lastFocusedBeforeHelp.focus();
+      } else if (helpButton) {
+        helpButton.focus();
+      }
+    }
+
+    function trapHelpFocus(event) {
+      if (!helpOpen || !helpModal) return;
+      if (event.key !== "Tab") return;
+      const focusables = helpModal.querySelectorAll("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])");
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
 
     function updateTape() {
@@ -4749,6 +5405,26 @@ function synthDustLayer(time, output, gainAmount) {
       resampleMaster();
     });
 
+    playButton.title = "Play/Pause (Space)";
+    document.getElementById("stop").title = "Stop (S)";
+    document.getElementById("reroll").title = "Re-roll Feel (Shift+R)";
+    document.getElementById("sketchA").title = "Sketch A (1 / Q)";
+    document.getElementById("sketchB").title = "Sketch B (2 / W)";
+    document.getElementById("sketchC").title = "Sketch C (3 / E)";
+    document.getElementById("sketchHouse").title = "House (4)";
+    document.getElementById("sketchTechno").title = "Techno (5)";
+    document.getElementById("sketchHipHop").title = "Hip Hop (6)";
+    if (helpButton) {
+      helpButton.title = "Help (?)";
+      helpButton.addEventListener("click", openHelpModal);
+    }
+    if (helpClose) helpClose.addEventListener("click", closeHelpModal);
+    if (helpModal) {
+      helpModal.addEventListener("click", (event) => {
+        if (event.target === helpModal) closeHelpModal();
+      });
+    }
+
     document.getElementById("sketchA").addEventListener("click", () => sketchPocket());
     document.getElementById("sketchB").addEventListener("click", () => sketchLurch());
     document.getElementById("sketchC").addEventListener("click", () => sketchShuffle());
@@ -5093,23 +5769,243 @@ function synthDustLayer(time, output, gainAmount) {
     window.addEventListener("resize", lockSequencerRowHeights);
 
     document.addEventListener("keydown", (event) => {
+      const modKey = isMacPlatform() ? event.metaKey : event.ctrlKey;
+      const key = event.key;
+      const editingText = isEditableTarget(event.target);
+
+      if (event.key === "Tab" && helpOpen) {
+        trapHelpFocus(event);
+      }
+      if (event.key === "Escape" && helpOpen) {
+        event.preventDefault();
+        closeHelpModal();
+        return;
+      }
+      if (editingText && !helpOpen) return;
+      if ((event.key === "?" || (modKey && event.key === "/")) && !event.repeat) {
+        event.preventDefault();
+        openHelpModal();
+        return;
+      }
+
       if (event.key === "Shift") {
         document.body.classList.add("show-velocity");
       }
+
+      if (helpOpen) return;
+
       if (event.code === "Space") {
         event.preventDefault();
         if (!isPlaying) start();
         else stop();
+        showShortcutToast(isPlaying ? "Playback started" : "Playback paused");
+        return;
       }
-      if (event.key === "r" || event.key === "R") {
+
+      if (modKey && /^[1-8]$/.test(key)) {
+        event.preventDefault();
+        const slot = Number(key);
+        if (event.shiftKey) savePatternToSlot(slot);
+        else loadPatternFromSlot(slot);
+        return;
+      }
+
+      if (modKey && (key === "s" || key === "S")) {
+        event.preventDefault();
+        if (event.shiftKey) {
+          savePatternToSlot(activePatternSlot);
+          showShortcutToast(`Saved (Save As) to Slot ${activePatternSlot}`);
+        } else {
+          savePatternToSlot(activePatternSlot);
+        }
+        return;
+      }
+      if (modKey && (key === "o" || key === "O")) {
+        event.preventDefault();
+        loadPatternFromPrompt();
+        return;
+      }
+
+      if (event.altKey && /^[1-5]$/.test(key)) {
+        event.preventDefault();
+        const tabMap = { 1: "track", 2: "groove", 3: "generator", 4: "tensor", 5: "mix" };
+        setTab(tabMap[Number(key)]);
+        showShortcutToast(`Tab: ${tabMap[Number(key)].toUpperCase()}`);
+        return;
+      }
+
+      if (key === "F1") { event.preventDefault(); setMode("sketch"); showShortcutToast("Mode: Sketch"); return; }
+      if (key === "F2") { event.preventDefault(); setMode("edit"); showShortcutToast("Mode: Edit"); return; }
+      if (key === "F3") { event.preventDefault(); setMode("perform"); showShortcutToast("Mode: Perform"); return; }
+
+      if (key === "s" || key === "S") {
+        event.preventDefault();
+        stop();
+        currentStep = 0;
+        showShortcutToast("Stopped");
+        return;
+      }
+      if (key === "n" || key === "N") {
+        event.preventDefault();
+        if (confirm("Clear current pattern?")) {
+          resetSequence();
+          showShortcutToast("Pattern cleared");
+        }
+        return;
+      }
+      if ((key === "r" || key === "R") && event.shiftKey) {
+        event.preventDefault();
         rollHumanizeForAllSteps();
+        showShortcutToast("Feel re-rolled");
+        return;
       }
-      if (event.key === "1") sketchPocket();
-      if (event.key === "2") sketchLurch();
-      if (event.key === "3") sketchShuffle();
-      if (event.key === "4") sketchHouse();
-      if (event.key === "5") sketchTechno();
-      if (event.key === "6") sketchHipHop();
+
+      if (key === "=" || key === "+") {
+        event.preventDefault();
+        const delta = event.shiftKey ? 5 : 1;
+        const nextTempo = clamp(Number(tempo.value) + delta, 88, 140);
+        tempo.value = nextTempo;
+        tempoValue.textContent = nextTempo;
+        tempoNumber.value = nextTempo;
+        showShortcutToast(`Tempo ${nextTempo} BPM`);
+        return;
+      }
+      if (key === "-" || key === "_") {
+        event.preventDefault();
+        const delta = event.shiftKey ? 5 : 1;
+        const nextTempo = clamp(Number(tempo.value) - delta, 88, 140);
+        tempo.value = nextTempo;
+        tempoValue.textContent = nextTempo;
+        tempoNumber.value = nextTempo;
+        showShortcutToast(`Tempo ${nextTempo} BPM`);
+        return;
+      }
+
+      if (key === "]") {
+        event.preventDefault();
+        const delta = event.shiftKey ? 5 : 1;
+        const next = clamp(Number(swing.value) + delta, 0, 70);
+        swing.value = next;
+        swingValue.textContent = next;
+        showShortcutToast(`Swing ${next} ms`);
+        return;
+      }
+      if (key === "[") {
+        event.preventDefault();
+        const delta = event.shiftKey ? 5 : 1;
+        const next = clamp(Number(swing.value) - delta, 0, 70);
+        swing.value = next;
+        swingValue.textContent = next;
+        showShortcutToast(`Swing ${next} ms`);
+        return;
+      }
+
+      if (key === "1" || key.toLowerCase() === "q") { event.preventDefault(); sketchPocket(); showShortcutToast("Sketch A"); return; }
+      if (key === "2" || key.toLowerCase() === "w") { event.preventDefault(); sketchLurch(); showShortcutToast("Sketch B"); return; }
+      if (key === "3" || key.toLowerCase() === "e") { event.preventDefault(); sketchShuffle(); showShortcutToast("Sketch C"); return; }
+      if (key === "4") { event.preventDefault(); sketchHouse(); showShortcutToast("Sketch House"); return; }
+      if (key === "5") { event.preventDefault(); sketchTechno(); showShortcutToast("Sketch Techno"); return; }
+      if (key === "6") { event.preventDefault(); sketchHipHop(); showShortcutToast("Sketch Hip Hop"); return; }
+      if (key.toLowerCase() === "g") { event.preventDefault(); surpriseSketch(); showShortcutToast("Surprise sketch"); return; }
+
+      const trackMap = { a: 0, d: 1, f: 2, g: 3, h: 4, j: 5, k: 6, l: 7 };
+      const trackIndexFromKey = trackMap[key.toLowerCase()];
+      if (Number.isInteger(trackIndexFromKey)) {
+        event.preventDefault();
+        setSelectedTrack(trackIndexFromKey);
+        showShortcutToast(`Track ${tracks[trackIndexFromKey].name}`);
+        return;
+      }
+
+      if (key.toLowerCase() === "m") {
+        event.preventDefault();
+        if (event.shiftKey) {
+          trackState[selectedTrackIndex].solo = !trackState[selectedTrackIndex].solo;
+          updateSoloVisuals();
+          const row = document.querySelector(`.strip-row[data-row-index="${selectedTrackIndex}"] .strip-solo`);
+          if (row) row.classList.toggle("active", trackState[selectedTrackIndex].solo);
+          showShortcutToast(`${tracks[selectedTrackIndex].name} ${trackState[selectedTrackIndex].solo ? "soloed" : "unsoloed"}`);
+        } else {
+          trackState[selectedTrackIndex].mute = !trackState[selectedTrackIndex].mute;
+          const row = document.querySelector(`.strip-row[data-row-index="${selectedTrackIndex}"] .strip-mute`);
+          if (row) {
+            row.classList.toggle("active", trackState[selectedTrackIndex].mute);
+            row.textContent = trackState[selectedTrackIndex].mute ? "Muted" : "Mute";
+          }
+          showShortcutToast(`${tracks[selectedTrackIndex].name} ${trackState[selectedTrackIndex].mute ? "muted" : "unmuted"}`);
+        }
+        return;
+      }
+
+      if (key.toLowerCase() === "t") {
+        event.preventDefault();
+        trackState[selectedTrackIndex].tensorEnabled = !trackState[selectedTrackIndex].tensorEnabled;
+        const tensorBtn = document.querySelector(`.strip-row[data-row-index="${selectedTrackIndex}"] .strip-tensor`);
+        if (tensorBtn) tensorBtn.classList.toggle("active", trackState[selectedTrackIndex].tensorEnabled);
+        showShortcutToast(`${tracks[selectedTrackIndex].name} tensor ${trackState[selectedTrackIndex].tensorEnabled ? "on" : "off"}`);
+        return;
+      }
+
+      if (key === "ArrowUp") {
+        event.preventDefault();
+        setSelectedTrack(clamp(selectedTrackIndex - 1, 0, tracks.length - 1));
+        return;
+      }
+      if (key === "ArrowDown") {
+        event.preventDefault();
+        setSelectedTrack(clamp(selectedTrackIndex + 1, 0, tracks.length - 1));
+        return;
+      }
+
+      if (!selectedStep) return;
+      const { trackIndex, stepIndex } = selectedStep;
+      if (key === "ArrowLeft") {
+        event.preventDefault();
+        selectStep(trackIndex, wrapIndex(stepIndex - 1, steps));
+        return;
+      }
+      if (key === "ArrowRight") {
+        event.preventDefault();
+        selectStep(trackIndex, wrapIndex(stepIndex + 1, steps));
+        return;
+      }
+      if (key === "Enter") {
+        event.preventDefault();
+        const step = sequence[trackIndex][stepIndex];
+        step.on = !step.on;
+        refreshStepUI();
+        return;
+      }
+      if (key.toLowerCase() === "v") {
+        event.preventDefault();
+        const step = sequence[trackIndex][stepIndex];
+        step.velocity = Number((step.velocity + 0.15).toFixed(2));
+        if (step.velocity > 1.05) step.velocity = 0.35;
+        refreshStepUI();
+        return;
+      }
+      if (key === "," || key === "<") {
+        event.preventDefault();
+        const step = sequence[trackIndex][stepIndex];
+        const idx = Math.max(0, microOffsets.indexOf(step.offset));
+        step.offset = microOffsets[clamp(idx - 1, 0, microOffsets.length - 1)];
+        refreshStepUI();
+        return;
+      }
+      if (key === "." || key === ">") {
+        event.preventDefault();
+        const step = sequence[trackIndex][stepIndex];
+        const idx = Math.max(0, microOffsets.indexOf(step.offset));
+        step.offset = microOffsets[clamp(idx + 1, 0, microOffsets.length - 1)];
+        refreshStepUI();
+        return;
+      }
+      if (key.toLowerCase() === "c") {
+        event.preventDefault();
+        const step = sequence[trackIndex][stepIndex];
+        step.locks = { pitch: null, reverse: null, stretch: null, slice: null, filter: null, resonance: null, decay: null, fx: null };
+        selectStep(trackIndex, stepIndex);
+      }
     });
     document.addEventListener("keyup", (event) => {
       if (event.key === "Shift") {
@@ -5145,6 +6041,9 @@ function synthDustLayer(time, output, gainAmount) {
     if (fxFocus) fxFocusEffect = fxFocus.value;
     updateFxFocusInfo();
     updateStressVisual();
+    const slotStore = getSlotStore();
+    activePatternSlot = slotStore.activeSlot || 1;
+    if (helpModal) helpModal.setAttribute("aria-hidden", "true");
     if (evolutionMemoryInfo) evolutionMemoryInfo.textContent = `Memory ${evolutionMemory.length}/${evolutionMemoryLimit}`;
     setMode("edit");
     setSelectedTrack(0);
