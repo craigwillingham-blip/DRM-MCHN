@@ -1247,6 +1247,7 @@
             <input id="tempo" type="range" min="88" max="140" value="116" />
             <input id="tempoNumber" type="number" min="88" max="140" value="116" />
             <div class="small"><span id="tempoValue">116</span> BPM</div>
+            <div class="small">Base tempo. Swing changes feel, not BPM.</div>
           </div>
           <div class="card" id="quickSketchCard">
             <h3>Quick Sketch</h3>
@@ -1402,6 +1403,7 @@
           <h3>Swing</h3>
           <input id="swing" type="range" min="0" max="70" value="24" />
           <div class="small"><span id="swingValue">24</span> ms</div>
+          <div class="small">Offsets step timing with zero tempo drift.</div>
         </div>
         <div class="card" id="tapeCard">
           <h3>Master Tape</h3>
@@ -1712,6 +1714,7 @@
     ];
 
     const steps = 16;
+    const stepsPerBeat = 4;
     const ALL_STEPS = Array.from({ length: steps }, (_, i) => i);
     const microOffsets = [-30, -18, -8, 0, 8, 18, 30];
 
@@ -2331,6 +2334,22 @@
       if (param === "cycle") el.textContent = value;
       if (param === "stutter") el.textContent = `${value}%`;
       if (param === "volume") el.textContent = `${value}%`;
+
+      if (
+        ["filter", "res", "crush", "dist", "delay", "reverb", "fx"].includes(param) &&
+        audioContext &&
+        state.fxNodes
+      ) {
+        const now = audioContext.currentTime;
+        updateTrackFx(
+          state.fxNodes,
+          state.filter,
+          state.resonance,
+          state,
+          state.fx,
+          now
+        );
+      }
     }
 
     function toggleStep(event, trackIndex, stepIndex, element) {
@@ -5006,8 +5025,12 @@
 
       const bpm = Math.max(40, Number(tempo.value) + pulseDriftState);
       const secondsPerBeat = 60.0 / bpm;
-      const stepDuration = secondsPerBeat / 4;
-      const swingOffset = (currentStep % 2 === 1 ? (Number(swing.value) + swingDriftState + longDrift * 3) : 0) / 1000;
+      const stepDuration = secondsPerBeat / stepsPerBeat;
+      const swingRawMs = Number(swing.value) + swingDriftState + longDrift * 3;
+      const swingMaxSec = stepDuration * 0.45;
+      const swingDelta = clamp(swingRawMs / 1000, -swingMaxSec, swingMaxSec);
+      // Zero-sum swing keeps average step time equal to base tempo.
+      const swingOffset = (currentStep % 2 === 0) ? -swingDelta : swingDelta;
 
       nextNoteTime += stepDuration + swingOffset;
       currentStep = (currentStep + 1) % steps;
@@ -5102,7 +5125,7 @@
       setTimeout(() => stepButtons.forEach((btn) => btn.classList.remove("current")), 80);
 
       const bpm = Math.max(40, Number(tempo.value) + pulseDriftState);
-      const stepDuration = (60.0 / bpm) / 4;
+      const stepDuration = (60.0 / bpm) / stepsPerBeat;
       let timingCompression = 1.0;
       const hits = [];
       let maxAccent = 0;
@@ -5682,8 +5705,10 @@ function synthDustLayer(time, output, gainAmount) {
 
       const output = audioContext.createGain();
       input.connect(tensor);
-      tensor.connect(dry);
-      tensor.connect(filter).connect(distortion).connect(crusher).connect(delay).connect(convolver).connect(wet);
+      // Always filter pre-split so cutoff is audible even when FX mix is low.
+      tensor.connect(filter);
+      filter.connect(dry);
+      filter.connect(distortion).connect(crusher).connect(delay).connect(convolver).connect(wet);
       dry.connect(output);
       wet.connect(output);
 
@@ -5691,6 +5716,7 @@ function synthDustLayer(time, output, gainAmount) {
     }
 
     function updateTrackFx(chain, filterCutoff, resonance, state, fxMix, time) {
+      if (!chain) return;
       const dryAppliesToTrack = dryModeEnabled && chain.trackIndex === selectedTrackIndex;
       const focused = dryAppliesToTrack ? fxFocusEffect : "all";
       const bypassAll = dryAppliesToTrack && focused === "none";
@@ -5702,8 +5728,8 @@ function synthDustLayer(time, output, gainAmount) {
       const cutoff = bypassAll ? 8000 : filterCutoff;
       const q = bypassAll ? 0.1 : clamp(resonance, 0.1, 12);
 
-      chain.filter.frequency.setValueAtTime(cutoff, time);
-      chain.filter.Q.value = q;
+      chain.filter.frequency.setTargetAtTime(cutoff, time, 0.02);
+      chain.filter.Q.setTargetAtTime(q, time, 0.02);
       chain.distortion.curve = createDistortionCurve(1 + useDist * 4);
       const crushStep = Math.round(clamp(useCrush, 0, 1) * 8);
       const canUpdateCrusher = (time - chain.lastCrushNodeUpdateTime) > 0.08;
@@ -5711,16 +5737,16 @@ function synthDustLayer(time, output, gainAmount) {
         const crushAmount = crushStep / 8;
         try { chain.crusher.disconnect(); } catch (err) {}
         chain.crusher = createBitCrusher(crushAmount);
-        try { chain.filter.disconnect(); } catch (err) {}
-        chain.filter.connect(chain.distortion).connect(chain.crusher).connect(chain.delay);
+        try { chain.distortion.disconnect(); } catch (err) {}
+        chain.distortion.connect(chain.crusher).connect(chain.delay);
         chain.lastCrushStep = crushStep;
         chain.lastCrushNodeUpdateTime = time;
       }
-      chain.delay.delayTime.value = clamp(0.18 + useDelay * 0.25, 0.01, 0.6);
-      chain.feedback.gain.value = clamp(0.2 + useDelay * 0.5, 0, 0.9);
+      chain.delay.delayTime.setTargetAtTime(clamp(0.18 + useDelay * 0.25, 0.01, 0.6), time, 0.02);
+      chain.feedback.gain.setTargetAtTime(clamp(0.2 + useDelay * 0.5, 0, 0.9), time, 0.02);
       chain.convolver.buffer = reverbImpulse;
-      chain.dry.gain.value = 1 - useFxMix;
-      chain.wet.gain.value = useFxMix * (0.5 + useReverb * 0.5);
+      chain.dry.gain.setTargetAtTime(1 - useFxMix, time, 0.02);
+      chain.wet.gain.setTargetAtTime(useFxMix * (0.5 + useReverb * 0.5), time, 0.02);
     }
 
     function createReverbImpulse(duration, decay) {
