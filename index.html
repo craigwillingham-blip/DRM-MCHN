@@ -355,6 +355,10 @@
       align-items: center;
       margin-bottom: 6px;
     }
+    .eq-controls {
+      display: grid;
+      gap: 8px;
+    }
     .mute {
       padding: 6px 10px;
       font-size: 12px;
@@ -1403,6 +1407,19 @@
           <h3>Master Tape</h3>
           <input id="tape" type="range" min="0" max="100" value="35" />
           <div class="small"><span id="tapeValue">35</span>%</div>
+        </div>
+        <div class="card" id="masterEQCard">
+          <h3>Master EQ</h3>
+          <div class="eq-controls">
+            <div class="inline"><label>Low Gain</label><span class="small" id="eqLowValue">0 dB</span></div>
+            <input id="eqLow" type="range" min="-12" max="6" value="0" />
+            <div class="inline"><label>Mid Gain</label><span class="small" id="eqMidValue">0 dB</span></div>
+            <input id="eqMid" type="range" min="-12" max="6" value="0" />
+            <div class="inline"><label>Mid Freq</label><span class="small" id="eqMidFreqValue">1000 Hz</span></div>
+            <input id="eqMidFreq" type="range" min="300" max="4000" value="1000" />
+            <div class="inline"><label>High Gain</label><span class="small" id="eqHighValue">0 dB</span></div>
+            <input id="eqHigh" type="range" min="-12" max="6" value="0" />
+          </div>
         </div>
         <div class="card" id="noiseCard">
           <h3>Noise Layer</h3>
@@ -3793,6 +3810,7 @@
 
       moveTo("tensorCard", tensorPanel);
       moveTo("fadersCard", mixPanel);
+      moveTo("masterEQCard", mixPanel);
 
       if (trackDock && knobsCard) {
         trackDock.appendChild(knobsCard);
@@ -3899,6 +3917,7 @@
     let masterCompressor;
     let masterSaturation;
     let masterLimiter;
+    let masterEQ;
     let reverbImpulse;
     let isPlaying = false;
     let currentStep = 0;
@@ -3916,6 +3935,12 @@
     let recordLength = 0;
     let isResamplingMaster = false;
     let quantizeEnabled = false;
+    const masterEQSettings = {
+      lowGainDb: 0,
+      midGainDb: 0,
+      midFreqHz: 1000,
+      highGainDb: 0
+    };
     const SLOT_STORAGE_KEY = "drm_mchn_pattern_slots_v1";
     const SLOT_COUNT = 8;
     let activePatternSlot = 1;
@@ -3929,6 +3954,14 @@
     const swingValue = document.getElementById("swingValue");
     const tape = document.getElementById("tape");
     const tapeValue = document.getElementById("tapeValue");
+    const eqLow = document.getElementById("eqLow");
+    const eqLowValue = document.getElementById("eqLowValue");
+    const eqMid = document.getElementById("eqMid");
+    const eqMidValue = document.getElementById("eqMidValue");
+    const eqMidFreq = document.getElementById("eqMidFreq");
+    const eqMidFreqValue = document.getElementById("eqMidFreqValue");
+    const eqHigh = document.getElementById("eqHigh");
+    const eqHighValue = document.getElementById("eqHighValue");
     const layer = document.getElementById("layer");
     const layerValue = document.getElementById("layerValue");
     const groovePreset = document.getElementById("groovePreset");
@@ -4254,7 +4287,21 @@
         masterLimiter.ratio.value = 20;
         masterLimiter.attack.value = 0.001;
         masterLimiter.release.value = 0.08;
+
+        masterEQ = {
+          low: audioContext.createBiquadFilter(),
+          mid: audioContext.createBiquadFilter(),
+          high: audioContext.createBiquadFilter()
+        };
+        masterEQ.low.type = "lowshelf";
+        masterEQ.low.frequency.value = 100;
+        masterEQ.mid.type = "peaking";
+        masterEQ.mid.frequency.value = 1000;
+        masterEQ.mid.Q.value = 0.9;
+        masterEQ.high.type = "highshelf";
+        masterEQ.high.frequency.value = 9000;
         updateTape();
+        applyMasterEQSettings();
         reverbImpulse = createReverbImpulse(2.2, 2.0);
 
         characterPreGain = audioContext.createGain();
@@ -4296,6 +4343,9 @@
           .connect(masterCompressor)
           .connect(masterSaturation);
         masterSaturation
+          .connect(masterEQ.low)
+          .connect(masterEQ.mid)
+          .connect(masterEQ.high)
           .connect(masterLimiter)
           .connect(audioContext.destination);
       }
@@ -4609,6 +4659,12 @@
         currentPatternIndex,
         queuedPatternIndex,
         quantizeEnabled,
+        masterEQSettings: {
+          lowGainDb: masterEQSettings.lowGainDb,
+          midGainDb: masterEQSettings.midGainDb,
+          midFreqHz: masterEQSettings.midFreqHz,
+          highGainDb: masterEQSettings.highGainDb
+        },
         selectedTrackIndex,
         selectedStep
       };
@@ -4690,6 +4746,11 @@
         ? null
         : clamp(Number(payload.queuedPatternIndex) || 0, 0, Math.max(0, patterns.length - 1));
       quantizeEnabled = !!payload.quantizeEnabled;
+      masterEQSettings.lowGainDb = clamp(Number(payload.masterEQSettings?.lowGainDb) || 0, -12, 6);
+      masterEQSettings.midGainDb = clamp(Number(payload.masterEQSettings?.midGainDb) || 0, -12, 6);
+      masterEQSettings.midFreqHz = clamp(Number(payload.masterEQSettings?.midFreqHz) || 1000, 300, 4000);
+      masterEQSettings.highGainDb = clamp(Number(payload.masterEQSettings?.highGainDb) || 0, -12, 6);
+      applyMasterEQSettings();
       populatePatternControls();
       applyPatternByIndex(currentPatternIndex);
       updatePatternControls();
@@ -4785,6 +4846,29 @@
       const driftedTape = clamp((Number(tape.value) / 100) + longDrift * 0.05, 0, 1.2);
       const amount = (0.9 + driftedTape * 0.9) * preSaturationDrive;
       masterSaturation.curve = createSaturationCurve(amount);
+    }
+
+    function applyMasterEQSettings() {
+      masterEQSettings.lowGainDb = clamp(Number(masterEQSettings.lowGainDb) || 0, -12, 6);
+      masterEQSettings.midGainDb = clamp(Number(masterEQSettings.midGainDb) || 0, -12, 6);
+      masterEQSettings.midFreqHz = clamp(Number(masterEQSettings.midFreqHz) || 1000, 300, 4000);
+      masterEQSettings.highGainDb = clamp(Number(masterEQSettings.highGainDb) || 0, -12, 6);
+
+      if (eqLow) eqLow.value = String(masterEQSettings.lowGainDb);
+      if (eqMid) eqMid.value = String(masterEQSettings.midGainDb);
+      if (eqMidFreq) eqMidFreq.value = String(masterEQSettings.midFreqHz);
+      if (eqHigh) eqHigh.value = String(masterEQSettings.highGainDb);
+      if (eqLowValue) eqLowValue.textContent = `${masterEQSettings.lowGainDb} dB`;
+      if (eqMidValue) eqMidValue.textContent = `${masterEQSettings.midGainDb} dB`;
+      if (eqMidFreqValue) eqMidFreqValue.textContent = `${masterEQSettings.midFreqHz} Hz`;
+      if (eqHighValue) eqHighValue.textContent = `${masterEQSettings.highGainDb} dB`;
+
+      if (!masterEQ) return;
+      const now = audioContext ? audioContext.currentTime : 0;
+      masterEQ.low.gain.setTargetAtTime(masterEQSettings.lowGainDb, now, 0.05);
+      masterEQ.mid.gain.setTargetAtTime(masterEQSettings.midGainDb, now, 0.05);
+      masterEQ.mid.frequency.setTargetAtTime(masterEQSettings.midFreqHz, now, 0.03);
+      masterEQ.high.gain.setTargetAtTime(masterEQSettings.highGainDb, now, 0.05);
     }
 
     async function loadSample(trackIndex, file) {
@@ -5835,6 +5919,31 @@ function synthDustLayer(time, output, gainAmount) {
       if (masterSaturation) updateTape();
     });
 
+    if (eqLow) {
+      eqLow.addEventListener("input", () => {
+        masterEQSettings.lowGainDb = clamp(Number(eqLow.value) || 0, -12, 6);
+        applyMasterEQSettings();
+      });
+    }
+    if (eqMid) {
+      eqMid.addEventListener("input", () => {
+        masterEQSettings.midGainDb = clamp(Number(eqMid.value) || 0, -12, 6);
+        applyMasterEQSettings();
+      });
+    }
+    if (eqMidFreq) {
+      eqMidFreq.addEventListener("input", () => {
+        masterEQSettings.midFreqHz = clamp(Number(eqMidFreq.value) || 1000, 300, 4000);
+        applyMasterEQSettings();
+      });
+    }
+    if (eqHigh) {
+      eqHigh.addEventListener("input", () => {
+        masterEQSettings.highGainDb = clamp(Number(eqHigh.value) || 0, -12, 6);
+        applyMasterEQSettings();
+      });
+    }
+
     layer.addEventListener("input", () => {
       layerValue.textContent = layer.value;
     });
@@ -6541,6 +6650,7 @@ function synthDustLayer(time, output, gainAmount) {
       evolutionAmount = Number(evolutionAmountSlider.value) / 100;
       evolutionAmountValue.textContent = `${Math.round(evolutionAmount * 100)}%`;
     }
+    applyMasterEQSettings();
     syncTensorValueLabels();
     syncTensorStateFromUI();
     if (dryMode) dryModeEnabled = dryMode.checked;
