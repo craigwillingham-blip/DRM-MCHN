@@ -269,6 +269,16 @@
       color: #8aa3b6;
       opacity: 0.9;
     }
+    .control-group {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #223241;
+    }
+    .control-group:first-of-type {
+      margin-top: 4px;
+      padding-top: 4px;
+      border-top: 0;
+    }
     .stress-wrap {
       display: grid;
       grid-template-columns: 16px 1fr;
@@ -296,6 +306,21 @@
     .stress-meta {
       display: grid;
       gap: 2px;
+    }
+    .perf-meters {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 8px 0 10px;
+    }
+    .perf-meter {
+      display: grid;
+      grid-template-columns: 14px 1fr;
+      gap: 6px;
+      align-items: end;
+    }
+    .perf-meter .stress-meter {
+      height: 58px;
     }
     input[type="range"], select {
       width: 100%;
@@ -1451,48 +1476,96 @@
         </div>
         <div class="card" id="behaviorCard">
           <h3>Behavior Engine</h3>
-          <div class="stress-wrap">
-            <div class="stress-meter"><div class="stress-fill" id="stressFill"></div></div>
-            <div class="stress-meta">
-              <div class="small">System Stress</div>
-              <div class="small" id="stressText">0%</div>
+          <div class="perf-meters">
+            <div class="perf-meter">
+              <div class="stress-meter"><div class="stress-fill" id="stressFill"></div></div>
+              <div class="stress-meta">
+                <div class="small">Stress</div>
+                <div class="small" id="stressText">0%</div>
+              </div>
+            </div>
+            <div class="perf-meter">
+              <div class="stress-meter"><div class="stress-fill" id="densityFill"></div></div>
+              <div class="stress-meta">
+                <div class="small">Density</div>
+                <div class="small" id="densityText">0%</div>
+              </div>
+            </div>
+            <div class="perf-meter">
+              <div class="stress-meter"><div class="stress-fill" id="pressureFill"></div></div>
+              <div class="stress-meta">
+                <div class="small">Pressure</div>
+                <div class="small" id="pressureText">0%</div>
+              </div>
             </div>
           </div>
-          <div class="group-label">Body</div>
-          <label for="headroomMode">Headroom Coupling</label>
-          <select id="headroomMode">
-            <option value="off">Off</option>
-            <option value="glue" selected>Glue</option>
-            <option value="punch">Punch</option>
-            <option value="dirt">Dirt</option>
-            <option value="collapse">Collapse</option>
-          </select>
-          <div class="inline"><label>Coupling</label><span class="small" id="headroomAmountValue">45%</span></div>
-          <input id="headroomAmount" type="range" min="0" max="100" value="45" />
-          <div class="small" id="densityReactInfo">Density React 65%</div>
-          <div class="small" id="sagInfo">Sag 0c</div>
-          <div class="group-label">Tone</div>
-          <label for="velocityCrushMode">Velocity Bit-Depth</label>
-          <select id="velocityCrushMode">
-            <option value="ghost_grit" selected>Ghost = Grit</option>
-            <option value="accent_grit">Accent = Grit</option>
-            <option value="off">Off</option>
-          </select>
-          <div class="group-label">Mind</div>
-          <div class="inline"><label>Evolve</label><span class="small" id="evolutionAmountValue">10%</span></div>
-          <input id="evolutionAmount" type="range" min="0" max="100" value="10" />
-          <div class="small" id="evolutionMemoryInfo">Memory 0/4</div>
-          <label class="small" style="margin-top:6px;"><input id="dryMode" type="checkbox" /> Dry Mode (Bypass FX)</label>
-          <label for="fxFocus">FX Focus</label>
-          <select id="fxFocus">
-            <option value="none" selected>None</option>
-            <option value="dist">Distortion</option>
-            <option value="crush">Crusher</option>
-            <option value="delay">Delay</option>
-            <option value="reverb">Reverb</option>
-            <option value="tensor">Tensor</option>
-          </select>
-          <div class="small" id="fxFocusInfo">Dry mode off</div>
+          <section id="body-controls" class="control-group">
+            <div class="group-label">Body</div>
+            <label for="headroomMode">Headroom Coupling</label>
+            <select id="headroomMode">
+              <option value="off">Off</option>
+              <option value="glue" selected>Glue</option>
+              <option value="punch">Punch</option>
+              <option value="dirt">Dirt</option>
+              <option value="collapse">Collapse</option>
+            </select>
+            <div class="inline"><label>Coupling</label><span class="small" id="headroomAmountValue">45%</span></div>
+            <input id="headroomAmount" type="range" min="0" max="100" value="45" />
+            <div class="inline"><label>Density React</label><span class="small" id="densityReactValue">65%</span></div>
+            <input id="densityReactSlider" type="range" min="0" max="100" value="65" />
+            <div class="small" id="sagInfo">Sag 0c</div>
+            <div class="inline"><label>Pattern</label><span class="small" id="patternStatus">A</span></div>
+            <select id="patternSelect"></select>
+            <div class="inline"><label>Link Target</label><span class="small" id="patternLinkStatus">None</span></div>
+            <select id="patternLinkTarget"></select>
+            <div class="inline"><label>Link Prob</label><span class="small" id="patternLinkProbValue">20%</span></div>
+            <input id="patternLinkProb" type="range" min="0" max="100" value="20" />
+            <label for="patternLinkMode">Link Mode</label>
+            <select id="patternLinkMode">
+              <option value="normal" selected>Normal</option>
+              <option value="pressure">Pressure</option>
+              <option value="collapse">Collapse</option>
+            </select>
+            <label class="small"><input id="quantizeToggle" type="checkbox" /> Quantize Timing</label>
+          </section>
+          <section id="tone-controls" class="control-group">
+            <div class="group-label">Tone</div>
+            <label for="velocityCrushMode">Velocity Bit-Depth</label>
+            <select id="velocityCrushMode">
+              <option value="ghost_grit" selected>Ghost = Grit</option>
+              <option value="accent_grit">Accent = Grit</option>
+              <option value="off">Off</option>
+            </select>
+            <label class="small" style="margin-top:6px;"><input id="dryMode" type="checkbox" /> Dry Mode (Bypass FX)</label>
+            <label for="fxFocus">FX Focus</label>
+            <select id="fxFocus">
+              <option value="none" selected>None</option>
+              <option value="dist">Distortion</option>
+              <option value="crush">Crusher</option>
+              <option value="delay">Delay</option>
+              <option value="reverb">Reverb</option>
+              <option value="tensor">Tensor</option>
+            </select>
+            <div class="small" id="fxFocusInfo">Dry mode off</div>
+          </section>
+          <section id="mind-controls" class="control-group">
+            <div class="group-label">Mind</div>
+            <div class="small" id="selectedTrackLabel">Track: Kick</div>
+            <label for="trackPlayMode">Playback Mode</label>
+            <select id="trackPlayMode">
+              <option value="forward" selected>Forward</option>
+              <option value="reverse">Reverse</option>
+              <option value="pingpong">Ping Pong</option>
+              <option value="random">Random</option>
+            </select>
+            <div class="preset-row">
+              <button id="phaseLeft">Phase -1</button>
+              <button id="phaseRight">Phase +1</button>
+            </div>
+            <div class="inline"><label>Evolve</label><span class="small" id="evolutionAmountValue">10%</span></div>
+            <input id="evolutionAmount" type="range" min="0" max="100" value="10" />
+            <div class="small" id="evolutionMemoryInfo">Memory 0/4</div>
+          </section>
         </div>
         <div class="card" id="stepEditorCard">
           <h3>Step Editor</h3>
@@ -1524,6 +1597,17 @@
           <div class="inline"><label>FX Mix</label><span class="small" id="lockFxValue">30%</span></div>
           <input id="lockFx" type="range" min="0" max="100" value="30" />
           <label class="small"><input id="lockFxEnable" type="checkbox" /> Enable</label>
+          <label class="small"><input id="rollEnable" type="checkbox" /> Roll Enable</label>
+          <div class="inline"><label>Roll Div</label><span class="small" id="rollDivisionValue">2x</span></div>
+          <input id="rollDivision" type="range" min="2" max="8" value="2" />
+          <label for="rollCurve">Roll Curve</label>
+          <select id="rollCurve">
+            <option value="up" selected>Up</option>
+            <option value="down">Down</option>
+            <option value="random">Random</option>
+          </select>
+          <div class="inline"><label>Length</label><span class="small" id="lengthStepsValue">1 step</span></div>
+          <input id="lengthSteps" type="range" min="1" max="8" value="1" />
           <button id="clearLocks">Clear Locks</button>
         </div>
       </div>
@@ -1622,6 +1706,8 @@
       humanVel: 1.0,
       humanDetune: 0,
       humanMod: 0,
+      lengthSteps: 1,
+      roll: { enable: false, division: 2, curve: "up" },
       cond: { chance: 100, every: 1 },
       locks: {
         pitch: null,
@@ -1640,6 +1726,11 @@
       solo: false,
       tensorEnabled: false,
       cycle: 16,
+      length: 16,
+      playMode: "forward",
+      direction: 1,
+      phase: 0,
+      cursor: 0,
       stutter: 0.25,
       source: "sample",
       buffer: null,
@@ -1667,6 +1758,10 @@
     }));
 
     const trackLoopCount = tracks.map(() => 0);
+    const PATTERN_IDS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+    let patterns = [];
+    let currentPatternIndex = 0;
+    let queuedPatternIndex = null;
 
     const humanize = {
       looseness: 24,
@@ -1770,7 +1865,7 @@
     let transientAccentBoost = 0.0;
     let previousStepLoad = 0.0;
     let longDrift = 0;
-    const densityReactAmount = 0.65;
+    let densityReactAmount = 0.65;
     let kickTransientBoost = 1.0;
     let preSaturationDrive = 1.0;
     // ===== Stress / Heat State (0..1) =====
@@ -2162,7 +2257,13 @@
       if (param === "fx") state.fx = Number(value) / 100;
       if (param === "lfo") state.lfo = Number(value) / 100;
       if (param === "style") state.style = value;
-      if (param === "cycle") state.cycle = Math.round(Number(value));
+      if (param === "cycle") {
+        state.cycle = Math.round(Number(value));
+        state.length = state.cycle;
+        state.cursor = clamp(state.cursor || 0, 0, state.length - 1);
+        state.phase = clamp(state.phase || 0, 0, state.length - 1);
+      }
+      if (param === "playMode") state.playMode = value;
       if (param === "stutter") state.stutter = Number(value) / 100;
       if (param === "source") {
         state.source = value;
@@ -2344,6 +2445,8 @@
     function setSelectedTrack(trackIndex) {
       selectedTrackIndex = trackIndex;
       updateTrackFocus();
+      if (selectedTrackLabel && tracks[trackIndex]) selectedTrackLabel.textContent = `Track: ${tracks[trackIndex].name}`;
+      if (trackPlayMode) trackPlayMode.value = trackState[trackIndex].playMode || "forward";
       if (!selectedStep && stepLabel && tracks[trackIndex]) {
         stepLabel.textContent = `${tracks[trackIndex].name} (T${trackIndex + 1}) • No step selected (Alt+Click a step)`;
       }
@@ -2392,6 +2495,13 @@
       lockFx.value = step.locks.fx ?? trackState[trackIndex].fx * 100;
       lockFxEnable.checked = step.locks.fx !== null;
       lockFxValue.textContent = `${lockFx.value}%`;
+
+      if (rollEnable) rollEnable.checked = !!step.roll?.enable;
+      if (rollDivision) rollDivision.value = clamp(Number(step.roll?.division) || 2, 2, 8);
+      if (rollDivisionValue) rollDivisionValue.textContent = `${rollDivision.value}x`;
+      if (rollCurve) rollCurve.value = ["up", "down", "random"].includes(step.roll?.curve) ? step.roll.curve : "up";
+      if (lengthSteps) lengthSteps.value = clamp(Number(step.lengthSteps) || 1, 1, 8);
+      if (lengthStepsValue) lengthStepsValue.textContent = `${lengthSteps.value} step${Number(lengthSteps.value) === 1 ? "" : "s"}`;
     }
 
     function updateSelectedStepLock(param, value, enabled) {
@@ -2406,6 +2516,8 @@
         step.on = false;
         step.velocity = 0.7;
         step.offset = 0;
+        step.lengthSteps = 1;
+        step.roll = { enable: false, division: 2, curve: "up" };
         step.cond = { chance: 100, every: 1 };
         step.locks = { pitch: null, reverse: null, stretch: null, slice: null, filter: null, resonance: null, decay: null, fx: null };
         rollHumanizeForStep(step);
@@ -2417,6 +2529,7 @@
         step.style.transform = "";
         step.style.opacity = "";
       });
+      syncCurrentPatternFromRuntime();
     }
 
     function sketchPocket() {
@@ -2953,6 +3066,7 @@
           applyStepVisuals(step, el);
         });
       });
+      syncCurrentPatternFromRuntime();
     }
 
     function fillKickPattern(stepsList) {
@@ -3801,6 +3915,7 @@
     let recordBuffersR = [];
     let recordLength = 0;
     let isResamplingMaster = false;
+    let quantizeEnabled = false;
     const SLOT_STORAGE_KEY = "drm_mchn_pattern_slots_v1";
     const SLOT_COUNT = 8;
     let activePatternSlot = 1;
@@ -3838,8 +3953,25 @@
     const headroomAmountValue = document.getElementById("headroomAmountValue");
     const stressFill = document.getElementById("stressFill");
     const stressText = document.getElementById("stressText");
-    const densityReactInfo = document.getElementById("densityReactInfo");
+    const densityFill = document.getElementById("densityFill");
+    const densityText = document.getElementById("densityText");
+    const pressureFill = document.getElementById("pressureFill");
+    const pressureText = document.getElementById("pressureText");
+    const densityReactSlider = document.getElementById("densityReactSlider");
+    const densityReactValue = document.getElementById("densityReactValue");
     const sagInfo = document.getElementById("sagInfo");
+    const patternSelect = document.getElementById("patternSelect");
+    const patternStatus = document.getElementById("patternStatus");
+    const patternLinkTarget = document.getElementById("patternLinkTarget");
+    const patternLinkStatus = document.getElementById("patternLinkStatus");
+    const patternLinkProb = document.getElementById("patternLinkProb");
+    const patternLinkProbValue = document.getElementById("patternLinkProbValue");
+    const patternLinkMode = document.getElementById("patternLinkMode");
+    const quantizeToggle = document.getElementById("quantizeToggle");
+    const trackPlayMode = document.getElementById("trackPlayMode");
+    const selectedTrackLabel = document.getElementById("selectedTrackLabel");
+    const phaseLeft = document.getElementById("phaseLeft");
+    const phaseRight = document.getElementById("phaseRight");
     const velocityCrushMode = document.getElementById("velocityCrushMode");
     const dryMode = document.getElementById("dryMode");
     const fxFocus = document.getElementById("fxFocus");
@@ -3918,6 +4050,12 @@
     const lockFx = document.getElementById("lockFx");
     const lockFxEnable = document.getElementById("lockFxEnable");
     const lockFxValue = document.getElementById("lockFxValue");
+    const rollEnable = document.getElementById("rollEnable");
+    const rollDivision = document.getElementById("rollDivision");
+    const rollDivisionValue = document.getElementById("rollDivisionValue");
+    const rollCurve = document.getElementById("rollCurve");
+    const lengthSteps = document.getElementById("lengthSteps");
+    const lengthStepsValue = document.getElementById("lengthStepsValue");
     const clearLocks = document.getElementById("clearLocks");
     const recordButton = document.getElementById("record");
     const exportWavButton = document.getElementById("exportWav");
@@ -4326,6 +4464,12 @@
         humanVel: Number(step.humanVel) || 1,
         humanDetune: Number(step.humanDetune) || 0,
         humanMod: Number(step.humanMod) || 0,
+        lengthSteps: clamp(Number(step.lengthSteps) || 1, 1, 8),
+        roll: {
+          enable: !!step.roll?.enable,
+          division: clamp(Number(step.roll?.division) || 2, 2, 8),
+          curve: ["up", "down", "random"].includes(step.roll?.curve) ? step.roll.curve : "up"
+        },
         cond: {
           chance: clamp(Number(step.cond?.chance) || 100, 0, 100),
           every: Math.max(1, Number(step.cond?.every) || 1)
@@ -4343,13 +4487,97 @@
       };
     }
 
+    function createTrackMetaSnapshot() {
+      return trackState.map((state) => ({
+        cycle: state.cycle,
+        length: state.length ?? state.cycle ?? 16,
+        playMode: state.playMode || "forward",
+        direction: state.direction === -1 ? -1 : 1,
+        phase: state.phase || 0,
+        cursor: state.cursor || 0
+      }));
+    }
+
+    function cloneSequenceSnapshot(srcSequence) {
+      return srcSequence.map((row) => row.map((step) => cloneStep(step)));
+    }
+
+    function defaultPatternLink() {
+      return { target: null, probability: 0.2, mode: "normal" };
+    }
+
+    function initPatternBankFromCurrent() {
+      const baseSequence = cloneSequenceSnapshot(sequence);
+      const baseMeta = createTrackMetaSnapshot();
+      patterns = PATTERN_IDS.map((id) => ({
+        id,
+        sequence: cloneSequenceSnapshot(baseSequence),
+        trackMeta: baseMeta.map((m) => ({ ...m })),
+        link: defaultPatternLink()
+      }));
+      currentPatternIndex = 0;
+      queuedPatternIndex = null;
+    }
+
+    function syncCurrentPatternFromRuntime() {
+      const pattern = patterns[currentPatternIndex];
+      if (!pattern) return;
+      pattern.sequence = cloneSequenceSnapshot(sequence);
+      pattern.trackMeta = createTrackMetaSnapshot();
+    }
+
+    function applyPatternByIndex(index) {
+      const pattern = patterns[index];
+      if (!pattern) return false;
+      for (let t = 0; t < sequence.length; t++) {
+        for (let s = 0; s < steps; s++) {
+          sequence[t][s] = cloneStep(pattern.sequence[t][s]);
+        }
+      }
+      for (let t = 0; t < trackState.length; t++) {
+        const meta = pattern.trackMeta?.[t];
+        if (!meta) continue;
+        trackState[t].cycle = clamp(Number(meta.cycle ?? meta.length ?? 16), 8, 16);
+        trackState[t].length = clamp(Number(meta.length ?? trackState[t].cycle), 8, 16);
+        trackState[t].playMode = ["forward", "reverse", "pingpong", "random"].includes(meta.playMode) ? meta.playMode : "forward";
+        trackState[t].direction = meta.direction === -1 ? -1 : 1;
+        trackState[t].phase = clamp(Number(meta.phase) || 0, 0, trackState[t].length - 1);
+        trackState[t].cursor = clamp(Number(meta.cursor) || 0, 0, trackState[t].length - 1);
+      }
+      refreshStepUI();
+      tracks.forEach((_, i) => updateKnobVisual(i));
+      return true;
+    }
+
+    function queuePatternChange(targetId) {
+      const i = patterns.findIndex((p) => p.id === targetId);
+      if (i >= 0) queuedPatternIndex = i;
+    }
+
+    function evaluatePatternLink() {
+      const pattern = patterns[currentPatternIndex];
+      if (!pattern || !pattern.link || !pattern.link.target) return;
+      let { target, probability, mode } = pattern.link;
+      let effProb = clamp(Number(probability) || 0, 0, 1);
+      if (mode === "pressure") effProb *= (1 + behavior.stress);
+      if (mode === "collapse" && behavior.stress < 0.75) return;
+      effProb = clamp(effProb, 0, 1);
+      if (Math.random() < effProb) queuePatternChange(target);
+    }
+
     function serializePatternState() {
+      syncCurrentPatternFromRuntime();
       const seq = sequence.map((row) => row.map((step) => cloneStep(step)));
       const tracksLite = trackState.map((state) => ({
         mute: !!state.mute,
         solo: !!state.solo,
         tensorEnabled: !!state.tensorEnabled,
         cycle: state.cycle,
+        length: state.length ?? state.cycle ?? 16,
+        playMode: state.playMode || "forward",
+        direction: state.direction === -1 ? -1 : 1,
+        phase: state.phase || 0,
+        cursor: state.cursor || 0,
         stutter: state.stutter,
         source: state.source,
         volume: state.volume,
@@ -4372,6 +4600,15 @@
         timestamp: Date.now(),
         sequence: seq,
         trackState: tracksLite,
+        patterns: patterns.map((p) => ({
+          id: p.id,
+          sequence: cloneSequenceSnapshot(p.sequence),
+          trackMeta: (p.trackMeta || []).map((m) => ({ ...m })),
+          link: p.link ? { ...p.link } : defaultPatternLink()
+        })),
+        currentPatternIndex,
+        queuedPatternIndex,
+        quantizeEnabled,
         selectedTrackIndex,
         selectedStep
       };
@@ -4396,6 +4633,11 @@
         state.solo = !!incoming.solo;
         state.tensorEnabled = !!incoming.tensorEnabled;
         updateTrackParam(t, "cycle", clamp(Number(incoming.cycle) || 16, 8, 16));
+        state.length = clamp(Number(incoming.length ?? incoming.cycle ?? state.cycle), 8, 16);
+        state.playMode = ["forward", "reverse", "pingpong", "random"].includes(incoming.playMode) ? incoming.playMode : "forward";
+        state.direction = incoming.direction === -1 ? -1 : 1;
+        state.phase = clamp(Number(incoming.phase) || 0, 0, state.length - 1);
+        state.cursor = clamp(Number(incoming.cursor) || 0, 0, state.length - 1);
         updateTrackParam(t, "stutter", clamp((Number(incoming.stutter) || 0) * 100, 0, 100));
         updateTrackParam(t, "source", incoming.source || "sample");
         updateTrackParam(t, "volume", clamp((Number(incoming.volume) || 0.8) * 100, 0, 100));
@@ -4429,6 +4671,28 @@
 
       refreshStepUI();
       updateSoloVisuals();
+      if (Array.isArray(payload.patterns) && payload.patterns.length) {
+        patterns = payload.patterns.map((p, idx) => ({
+          id: p.id || PATTERN_IDS[idx] || `P${idx + 1}`,
+          sequence: cloneSequenceSnapshot(p.sequence || sequence),
+          trackMeta: Array.isArray(p.trackMeta) ? p.trackMeta.map((m) => ({ ...m })) : createTrackMetaSnapshot(),
+          link: p.link ? {
+            target: p.link.target || null,
+            probability: clamp(Number(p.link.probability) || 0, 0, 1),
+            mode: ["normal", "pressure", "collapse"].includes(p.link.mode) ? p.link.mode : "normal"
+          } : defaultPatternLink()
+        }));
+      } else {
+        initPatternBankFromCurrent();
+      }
+      currentPatternIndex = clamp(Number(payload.currentPatternIndex) || 0, 0, Math.max(0, patterns.length - 1));
+      queuedPatternIndex = payload.queuedPatternIndex === null || payload.queuedPatternIndex === undefined
+        ? null
+        : clamp(Number(payload.queuedPatternIndex) || 0, 0, Math.max(0, patterns.length - 1));
+      quantizeEnabled = !!payload.quantizeEnabled;
+      populatePatternControls();
+      applyPatternByIndex(currentPatternIndex);
+      updatePatternControls();
       setSelectedTrack(clamp(Number(payload.selectedTrackIndex) || 0, 0, tracks.length - 1));
       if (payload.selectedStep && Number.isInteger(payload.selectedStep.trackIndex) && Number.isInteger(payload.selectedStep.stepIndex)) {
         selectStep(payload.selectedStep.trackIndex, payload.selectedStep.stepIndex);
@@ -4665,11 +4929,89 @@
       currentStep = (currentStep + 1) % steps;
     }
 
+    function resolveTrackStepPosition(state) {
+      const length = clamp(state.length || state.cycle || 16, 8, 16);
+      let localStep;
+      if (state.playMode === "random") {
+        localStep = Math.floor(Math.random() * length);
+      } else {
+        localStep = ((state.cursor || 0) + (state.phase || 0) + length) % length;
+      }
+      localStep = clamp(Math.floor(localStep), 0, length - 1);
+      return { localStep, length };
+    }
+
+    function advanceTrackCursor(state, length) {
+      let next = state.cursor || 0;
+      let wrapped = false;
+      const mode = state.playMode || "forward";
+      if (mode === "reverse") {
+        next -= 1;
+        if (next < 0) {
+          next = length - 1;
+          wrapped = true;
+        }
+      } else if (mode === "pingpong") {
+        const dir = state.direction === -1 ? -1 : 1;
+        next += dir;
+        if (next >= length) {
+          state.direction = -1;
+          next = Math.max(0, length - 2);
+          wrapped = true;
+        } else if (next < 0) {
+          state.direction = 1;
+          next = Math.min(length - 1, 1);
+          wrapped = true;
+        }
+      } else {
+        next += 1;
+        if (next >= length) {
+          next = 0;
+          wrapped = true;
+        }
+      }
+      state.cursor = clamp(next, 0, length - 1);
+      return wrapped;
+    }
+
+    function velocityCurve(baseVelocity, tNorm, curve) {
+      if (curve === "down") return clamp(baseVelocity * (1.12 - tNorm * 0.42), 0.03, 1.2);
+      if (curve === "random") return clamp(baseVelocity * (0.8 + Math.random() * 0.45), 0.03, 1.2);
+      return clamp(baseVelocity * (0.82 + tNorm * 0.45), 0.03, 1.2);
+    }
+
+    function playRoll(hit, baseTime, tIndex, roll, stepDuration, noteDuration, modDeltas, timingCompression, coupledVelocity) {
+      const num = clamp(Number(roll.division) || 2, 2, 8);
+      for (let i = 0; i < num; i++) {
+        const subTime = baseTime + (i / num) * stepDuration;
+        const vel = velocityCurve(coupledVelocity, i / num, roll.curve || "up");
+        triggerSound(
+          hit.track.tone,
+          subTime + (hit.microTime + hit.humanTime) * timingCompression,
+          tIndex,
+          vel,
+          hit.data,
+          noteDuration,
+          modDeltas,
+          hit.localStep
+        );
+      }
+    }
+
     function playStep(stepIndex, time) {
       if (stepIndex === 0) {
+        if (queuedPatternIndex !== null) {
+          currentPatternIndex = queuedPatternIndex;
+          queuedPatternIndex = null;
+          applyPatternByIndex(currentPatternIndex);
+          updatePatternControls();
+          showShortcutToast(`Pattern ${patterns[currentPatternIndex]?.id || "?"}`);
+        }
         longDrift += randomInRange(-0.005, 0.005);
         longDrift = clamp(longDrift, -0.15, 0.15);
         evolveCurrentBar();
+        syncCurrentPatternFromRuntime();
+        evaluatePatternLink();
       }
       const stepButtons = document.querySelectorAll(`.step[data-step="${stepIndex}"]`);
       stepButtons.forEach((btn) => btn.classList.add("current"));
@@ -4691,10 +5033,11 @@
       tracks.forEach((track, tIndex) => {
         if (hasSolo && !trackState[tIndex].solo) return;
         if (trackState[tIndex].mute) return;
-        const cycle = trackState[tIndex].cycle;
-        const localStep = stepIndex % cycle;
-        if (localStep === 0) trackLoopCount[tIndex] += 1;
+        const state = trackState[tIndex];
+        const { localStep, length } = resolveTrackStepPosition(state);
         const data = sequence[tIndex][localStep];
+        const wrapped = advanceTrackCursor(state, length);
+        if (wrapped) trackLoopCount[tIndex] += 1;
         if (!data.on) return;
         const chanceJitter = (Math.random() * 2 - 1) * 22 * probChaos;
         const chanceNow = clamp(data.cond.chance + chanceJitter, 0, 100);
@@ -4703,14 +5046,15 @@
         if (everyNow > 1 && (trackLoopCount[tIndex] % everyNow !== 0)) return;
 
         // Beatdown microtiming + humanize offset applied here.
-        const microTime = (data.offset / 1000);
-        const humanTime = (data.humanOffset / 1000) * loosenessScale;
-        const velocity = data.velocity * (1 + (data.humanVel - 1) * velocityVarScale);
+        const microTime = quantizeEnabled ? 0 : (data.offset / 1000);
+        const humanScale = lerp(1.15, 0.85, clamp01(behavior.density));
+        const humanTime = quantizeEnabled ? 0 : (data.humanOffset / 1000) * loosenessScale * humanScale;
+        const velocity = data.velocity * (1 + (data.humanVel - 1) * velocityVarScale * humanScale);
         if (velocity > maxAccent) maxAccent = velocity;
-        hits.push({ track, tIndex, data, microTime, humanTime, velocity });
+        hits.push({ track, tIndex, data, microTime, humanTime, velocity, localStep });
         shouldTriggerCharacter = true;
         if (densityChaos > 0 && !isDownbeat(localStep) && Math.random() < 0.04 * densityChaos) {
-          hits.push({ track, tIndex, data, microTime: microTime + 0.006, humanTime, velocity: velocity * 0.45 });
+          hits.push({ track, tIndex, data, microTime: microTime + 0.006, humanTime, velocity: velocity * 0.45, localStep });
         }
       });
 
@@ -4762,16 +5106,22 @@
 
       hits.forEach((hit) => {
         const coupledVelocity = applyHeadroomToVelocity(hit, hit.velocity, headroomProfile);
+        const effectiveDuration = stepDuration * clamp(Number(hit.data.lengthSteps) || 1, 1, 8);
         try {
-          triggerSound(
-            hit.track.tone,
-            time + (hit.microTime + hit.humanTime) * timingCompression,
-            hit.tIndex,
-            coupledVelocity,
-            hit.data,
-            stepDuration,
-            modDeltas
-          );
+          if (hit.data.roll?.enable) {
+            playRoll(hit, time, hit.tIndex, hit.data.roll, stepDuration, effectiveDuration, modDeltas, timingCompression, coupledVelocity);
+          } else {
+            triggerSound(
+              hit.track.tone,
+              time + (hit.microTime + hit.humanTime) * timingCompression,
+              hit.tIndex,
+              coupledVelocity,
+              hit.data,
+              effectiveDuration,
+              modDeltas,
+              hit.localStep
+            );
+          }
         } catch (err) {
           console.error("Trigger error:", err);
         }
@@ -4786,8 +5136,9 @@
               hit.tIndex,
               coupledVelocity * 0.6,
               hit.data,
-              stepDuration,
-              modDeltas
+              effectiveDuration,
+              modDeltas,
+              hit.localStep
             );
           } catch (err) {
             console.error("Stutter error:", err);
@@ -4796,7 +5147,12 @@
       });
     }
 
-    function triggerSound(type, time, tIndex, velocity, data, stepDuration, modDeltas = null) {
+    function resolvePlaybackStepIndex(tIndex, sourceStepIndex) {
+      const length = clamp(trackState[tIndex].length || trackState[tIndex].cycle || 16, 8, 16);
+      return clamp(Number(sourceStepIndex) || 0, 0, length - 1);
+    }
+
+    function triggerSound(type, time, tIndex, velocity, data, stepDuration, modDeltas = null, sourceStepIndex = null) {
       const state = trackState[tIndex];
       const layerEnergyBoost = modDeltas ? modDeltas.energyToNoise : 0;
       const dryAppliesToTrack = dryModeEnabled && tIndex === selectedTrackIndex;
@@ -4808,15 +5164,20 @@
       const rawStyle = state.style || "lofi";
       const style = rawStyle === "random" ? pickVariant(["lofi", "metallic", "dirty", "soft"]) : rawStyle;
       const styleProfile = getStyleProfile(style);
+      const isSampleBased = state.source === "sample" || state.source === "resample";
+      const playbackStepIndex = isSampleBased ? resolvePlaybackStepIndex(tIndex, sourceStepIndex) : null;
+      const playbackData = isSampleBased && Number.isInteger(playbackStepIndex)
+        ? (sequence[tIndex][playbackStepIndex] || data)
+        : data;
 
-      const lockedPitch = getLockedValue(data, "pitch", state.pitch + data.humanDetune);
-      const lockedSlice = getLockedValue(data, "slice", state.slice);
-      const lockedStretch = getLockedValue(data, "stretch", state.stretch);
-      const lockedFilter = getLockedValue(data, "filter", state.filter);
-      const lockedRes = getLockedValue(data, "resonance", state.resonance);
-      const lockedDecay = getLockedValue(data, "decay", clamp(state.decay + data.humanMod * 0.4, 0.05, 1.2));
-      const lockedFx = getLockedValue(data, "fx", state.fx);
-      const reverse = data.locks.reverse === true;
+      const lockedPitch = getLockedValue(playbackData, "pitch", state.pitch + playbackData.humanDetune);
+      const lockedSlice = getLockedValue(playbackData, "slice", state.slice);
+      const lockedStretch = getLockedValue(playbackData, "stretch", state.stretch);
+      const lockedFilter = getLockedValue(playbackData, "filter", state.filter);
+      const lockedRes = getLockedValue(playbackData, "resonance", state.resonance);
+      const lockedDecay = getLockedValue(playbackData, "decay", clamp(state.decay + playbackData.humanMod * 0.4, 0.05, 1.2));
+      const lockedFx = getLockedValue(playbackData, "fx", state.fx);
+      const reverse = playbackData.locks.reverse === true;
 
       const cutoffDelta = modDeltas ? modDeltas.densityToCutoff : 0;
       const resDelta = modDeltas ? modDeltas.swingToRes : 0;
@@ -5535,6 +5896,56 @@ function synthDustLayer(time, output, gainAmount) {
         if (headroomAmountValue) headroomAmountValue.textContent = `${Math.round(headroomAmountValueNum * 100)}%`;
       });
     }
+    if (densityReactSlider) {
+      densityReactSlider.addEventListener("input", () => {
+        densityReactAmount = clamp(Number(densityReactSlider.value) / 100, 0, 1);
+        if (densityReactValue) densityReactValue.textContent = `${Math.round(densityReactAmount * 100)}%`;
+      });
+    }
+    if (patternSelect) {
+      patternSelect.addEventListener("change", () => {
+        const next = clamp(Number(patternSelect.value) || 0, 0, Math.max(0, patterns.length - 1));
+        syncCurrentPatternFromRuntime();
+        currentPatternIndex = next;
+        applyPatternByIndex(currentPatternIndex);
+        updatePatternControls();
+        showShortcutToast(`Pattern ${patterns[currentPatternIndex]?.id || "?"}`);
+      });
+    }
+    if (patternLinkTarget) {
+      patternLinkTarget.addEventListener("change", () => {
+        const pattern = patterns[currentPatternIndex];
+        if (!pattern) return;
+        if (!pattern.link) pattern.link = defaultPatternLink();
+        pattern.link.target = patternLinkTarget.value || null;
+        syncCurrentPatternFromRuntime();
+        updatePatternControls();
+      });
+    }
+    if (patternLinkProb) {
+      patternLinkProb.addEventListener("input", () => {
+        const pattern = patterns[currentPatternIndex];
+        if (!pattern) return;
+        if (!pattern.link) pattern.link = defaultPatternLink();
+        pattern.link.probability = clamp(Number(patternLinkProb.value) / 100, 0, 1);
+        updatePatternControls();
+      });
+    }
+    if (patternLinkMode) {
+      patternLinkMode.addEventListener("change", () => {
+        const pattern = patterns[currentPatternIndex];
+        if (!pattern) return;
+        if (!pattern.link) pattern.link = defaultPatternLink();
+        pattern.link.mode = patternLinkMode.value;
+        syncCurrentPatternFromRuntime();
+      });
+    }
+    if (quantizeToggle) {
+      quantizeToggle.addEventListener("change", () => {
+        quantizeEnabled = quantizeToggle.checked;
+        showShortcutToast(`Quantize ${quantizeEnabled ? "On" : "Off"}`);
+      });
+    }
     if (velocityCrushMode) {
       velocityCrushMode.addEventListener("change", () => {
         velocityCrushModeValue = velocityCrushMode.value;
@@ -5563,8 +5974,55 @@ function synthDustLayer(time, output, gainAmount) {
       const stressVisual = clamp01(behavior.stress * 0.7 + behavior.heat * 0.3);
       if (stressFill) stressFill.style.height = `${Math.round(stressVisual * 100)}%`;
       if (stressText) stressText.textContent = `${Math.round(stressVisual * 100)}%`;
-      if (densityReactInfo) densityReactInfo.textContent = `Density React ${Math.round(densityReactAmount * 100)}%`;
+      if (densityFill) densityFill.style.height = `${Math.round(clamp01(behavior.density) * 100)}%`;
+      if (densityText) densityText.textContent = `${Math.round(clamp01(behavior.density) * 100)}%`;
+      if (pressureFill) pressureFill.style.height = `${Math.round(clamp01(behavior.pressure) * 100)}%`;
+      if (pressureText) pressureText.textContent = `${Math.round(clamp01(behavior.pressure) * 100)}%`;
+      if (densityReactValue) densityReactValue.textContent = `${Math.round(densityReactAmount * 100)}%`;
       if (sagInfo) sagInfo.textContent = `Sag ${Math.round(behavior.sagCents)}c`;
+    }
+
+    function shiftTrackPhase(tIndex, offset) {
+      const length = clamp(trackState[tIndex].length || trackState[tIndex].cycle || 16, 8, 16);
+      const next = ((trackState[tIndex].phase || 0) + offset + length) % length;
+      trackState[tIndex].phase = next;
+      showShortcutToast(`${tracks[tIndex].name} phase ${next}`);
+      syncCurrentPatternFromRuntime();
+    }
+
+    function populatePatternControls() {
+      if (!patternSelect || !patternLinkTarget) return;
+      patternSelect.innerHTML = "";
+      patternLinkTarget.innerHTML = "";
+      const none = document.createElement("option");
+      none.value = "";
+      none.textContent = "None";
+      patternLinkTarget.appendChild(none);
+      patterns.forEach((p, i) => {
+        const opt = document.createElement("option");
+        opt.value = String(i);
+        opt.textContent = p.id;
+        patternSelect.appendChild(opt);
+        const linkOpt = document.createElement("option");
+        linkOpt.value = p.id;
+        linkOpt.textContent = p.id;
+        patternLinkTarget.appendChild(linkOpt);
+      });
+      updatePatternControls();
+    }
+
+    function updatePatternControls() {
+      const pattern = patterns[currentPatternIndex];
+      if (!pattern) return;
+      if (patternSelect) patternSelect.value = String(currentPatternIndex);
+      if (patternStatus) patternStatus.textContent = pattern.id;
+      const link = pattern.link || defaultPatternLink();
+      if (patternLinkTarget) patternLinkTarget.value = link.target || "";
+      if (patternLinkStatus) patternLinkStatus.textContent = link.target || "None";
+      if (patternLinkProb) patternLinkProb.value = Math.round((link.probability || 0) * 100);
+      if (patternLinkProbValue) patternLinkProbValue.textContent = `${Math.round((link.probability || 0) * 100)}%`;
+      if (patternLinkMode) patternLinkMode.value = link.mode || "normal";
+      if (quantizeToggle) quantizeToggle.checked = !!quantizeEnabled;
     }
     if (dryMode) {
       dryMode.addEventListener("change", () => {
@@ -5579,6 +6037,15 @@ function synthDustLayer(time, output, gainAmount) {
         updateFxFocusInfo();
       });
     }
+    if (trackPlayMode) {
+      trackPlayMode.addEventListener("change", () => {
+        trackState[selectedTrackIndex].playMode = trackPlayMode.value;
+        showShortcutToast(`${tracks[selectedTrackIndex].name} mode ${trackPlayMode.value}`);
+        syncCurrentPatternFromRuntime();
+      });
+    }
+    if (phaseLeft) phaseLeft.addEventListener("click", () => shiftTrackPhase(selectedTrackIndex, -1));
+    if (phaseRight) phaseRight.addEventListener("click", () => shiftTrackPhase(selectedTrackIndex, 1));
 
     function syncTensorStateFromUI() {
       if (tensorEnable) tensorState.enabled = tensorEnable.checked;
@@ -5751,6 +6218,44 @@ function synthDustLayer(time, output, gainAmount) {
     lockFxEnable.addEventListener("change", () => {
       updateSelectedStepLock("fx", Number(lockFx.value) / 100, lockFxEnable.checked);
     });
+
+    if (rollEnable) {
+      rollEnable.addEventListener("change", () => {
+        if (!selectedStep) return;
+        const step = sequence[selectedStep.trackIndex][selectedStep.stepIndex];
+        step.roll = step.roll || { enable: false, division: 2, curve: "up" };
+        step.roll.enable = rollEnable.checked;
+        syncCurrentPatternFromRuntime();
+      });
+    }
+    if (rollDivision) {
+      rollDivision.addEventListener("input", () => {
+        if (!selectedStep) return;
+        const step = sequence[selectedStep.trackIndex][selectedStep.stepIndex];
+        step.roll = step.roll || { enable: false, division: 2, curve: "up" };
+        step.roll.division = clamp(Number(rollDivision.value) || 2, 2, 8);
+        if (rollDivisionValue) rollDivisionValue.textContent = `${step.roll.division}x`;
+        syncCurrentPatternFromRuntime();
+      });
+    }
+    if (rollCurve) {
+      rollCurve.addEventListener("change", () => {
+        if (!selectedStep) return;
+        const step = sequence[selectedStep.trackIndex][selectedStep.stepIndex];
+        step.roll = step.roll || { enable: false, division: 2, curve: "up" };
+        step.roll.curve = rollCurve.value;
+        syncCurrentPatternFromRuntime();
+      });
+    }
+    if (lengthSteps) {
+      lengthSteps.addEventListener("input", () => {
+        if (!selectedStep) return;
+        const step = sequence[selectedStep.trackIndex][selectedStep.stepIndex];
+        step.lengthSteps = clamp(Number(lengthSteps.value) || 1, 1, 8);
+        if (lengthStepsValue) lengthStepsValue.textContent = `${step.lengthSteps} step${step.lengthSteps === 1 ? "" : "s"}`;
+        syncCurrentPatternFromRuntime();
+      });
+    }
 
     clearLocks.addEventListener("click", () => {
       if (!selectedStep) return;
@@ -6017,6 +6522,7 @@ function synthDustLayer(time, output, gainAmount) {
     });
 
     // Initialize humanize UI with default preset.
+    initPatternBankFromCurrent();
     applyHumanizePreset("loose");
     setXYFromValues();
     if (chaos && chaosValue) chaosValue.textContent = chaos.value;
@@ -6041,6 +6547,8 @@ function synthDustLayer(time, output, gainAmount) {
     if (fxFocus) fxFocusEffect = fxFocus.value;
     updateFxFocusInfo();
     updateStressVisual();
+    populatePatternControls();
+    updatePatternControls();
     const slotStore = getSlotStore();
     activePatternSlot = slotStore.activeSlot || 1;
     if (helpModal) helpModal.setAttribute("aria-hidden", "true");
